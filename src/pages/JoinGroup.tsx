@@ -20,8 +20,12 @@ const JoinGroup = () => {
       return;
     }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 500));
-    const group = joinGroup(code.toUpperCase());
+    let group = null;
+    try {
+      group = await joinGroup(code.toUpperCase());
+    } catch {
+      group = null;
+    }
     setLoading(false);
     if (group) {
       toast({ title: "Joined!", description: `Welcome to ${group.name}` });

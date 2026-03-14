@@ -15,13 +15,22 @@ const CreateGroup = () => {
   const createGroup = useGroupStore((s) => s.createGroup);
   const navigate = useNavigate();
 
-  const handleCreate = (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !betPrice) {
       toast({ title: "Error", description: "Fill all fields.", variant: "destructive" });
       return;
     }
-    const group = createGroup(name, parseInt(betPrice));
+    let group = null;
+    try {
+      group = await createGroup(name, parseInt(betPrice, 10));
+    } catch {
+      group = null;
+    }
+    if (!group) {
+      toast({ title: "Error", description: "Unable to create group.", variant: "destructive" });
+      return;
+    }
     setCreatedGroup({ name: group.name, inviteCode: group.inviteCode });
     toast({ title: "Group Created!", description: `Invite code: ${group.inviteCode}` });
   };
@@ -44,7 +53,7 @@ const CreateGroup = () => {
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
                 <label className="text-sm text-muted-foreground mb-1 block">Group Name</label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="IPL Legends" className="bg-muted/50 border-border/50 text-foreground" />
+                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter group name" className="bg-muted/50 border-border/50 text-foreground" />
               </div>
               <div>
                 <label className="text-sm text-muted-foreground mb-1 block">Bet Price (coins per match)</label>

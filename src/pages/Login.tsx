@@ -10,10 +10,29 @@ import { toast } from "@/hooks/use-toast";
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [resending, setResending] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const login = useUserStore((s) => s.login);
+  const resendVerificationEmail = useUserStore((s) => s.resendVerificationEmail);
   const navigate = useNavigate();
+
+  const handleResendVerification = async () => {
+    if (!email) {
+      toast({ title: "Email required", description: "Enter your email first.", variant: "destructive" });
+      return;
+    }
+
+    setResending(true);
+    const ok = await resendVerificationEmail(email);
+    setResending(false);
+
+    if (ok) {
+      toast({ title: "Verification sent", description: "Check your inbox for a new verification link." });
+    } else {
+      toast({ title: "Error", description: "Failed to send verification email.", variant: "destructive" });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,6 +45,12 @@ const Login = () => {
     setLoading(false);
     if (success) {
       navigate("/dashboard");
+    } else {
+      toast({
+        title: "Login failed",
+        description: "Invalid credentials or email not verified.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -86,6 +111,16 @@ const Login = () => {
               className="w-full gradient-primary text-primary-foreground font-display font-bold text-lg h-12"
             >
               {loading ? "Logging in..." : "Login"}
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              disabled={resending}
+              onClick={handleResendVerification}
+              className="w-full border-border/50"
+            >
+              {resending ? "Sending verification..." : "Resend Verification Email"}
             </Button>
           </form>
 

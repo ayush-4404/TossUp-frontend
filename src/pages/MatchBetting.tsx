@@ -27,8 +27,12 @@ const MatchBetting = () => {
   const [bettingClosed, setBettingClosed] = useState(false);
 
   useEffect(() => {
-    if (matches.length === 0) loadMatches();
-    if (groups.length === 0) loadGroups();
+    if (matches.length === 0) {
+      loadMatches().catch(() => undefined);
+    }
+    if (groups.length === 0) {
+      loadGroups().catch(() => undefined);
+    }
   }, [matches.length, groups.length, loadMatches, loadGroups]);
 
   const match = matches.find((m) => m.id === id);
@@ -50,12 +54,16 @@ const MatchBetting = () => {
   const handleConfirm = async () => {
     if (!selectedTeam || !match) return;
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    placeBet(match.id, groupId, selectedTeam.id, betAmount);
-    updateCoins(-betAmount);
-    setLoading(false);
-    setShowConfirm(false);
-    toast({ title: "Bet Placed! 🎉", description: `You bet ${betAmount} coins on ${selectedTeam.shortName}` });
+    try {
+      await placeBet(match.id, groupId, selectedTeam.name, betAmount);
+      updateCoins(-betAmount);
+      setShowConfirm(false);
+      toast({ title: "Bet Placed!", description: `You bet ${betAmount} coins on ${selectedTeam.shortName}` });
+    } catch {
+      toast({ title: "Error", description: "Failed to place bet.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!match) {

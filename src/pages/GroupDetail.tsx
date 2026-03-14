@@ -19,8 +19,12 @@ const GroupDetail = () => {
   const { matches, loadMatches } = useMatchStore();
 
   useEffect(() => {
-    if (groups.length === 0) loadGroups();
-    if (matches.length === 0) loadMatches();
+    if (groups.length === 0) {
+      loadGroups().catch(() => undefined);
+    }
+    if (matches.length === 0) {
+      loadMatches().catch(() => undefined);
+    }
   }, [groups.length, matches.length, loadGroups, loadMatches]);
 
   const group = groups.find((g) => g.id === id);

@@ -14,7 +14,9 @@ const Signup = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const signup = useUserStore((s) => s.signup);
+  const resendVerificationEmail = useUserStore((s) => s.resendVerificationEmail);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,8 +33,27 @@ const Signup = () => {
     const success = await signup(name, email, password);
     setLoading(false);
     if (success) {
-      toast({ title: "Welcome!", description: "Account created successfully." });
-      navigate("/dashboard");
+      toast({ title: "Account created", description: "Please verify your email before logging in." });
+      navigate("/login");
+    } else {
+      toast({ title: "Error", description: "Signup failed. Please try again.", variant: "destructive" });
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!email) {
+      toast({ title: "Email required", description: "Enter your email first.", variant: "destructive" });
+      return;
+    }
+
+    setResending(true);
+    const ok = await resendVerificationEmail(email);
+    setResending(false);
+
+    if (ok) {
+      toast({ title: "Verification sent", description: "Check your inbox for a new verification link." });
+    } else {
+      toast({ title: "Error", description: "Could not resend verification email.", variant: "destructive" });
     }
   };
 
@@ -90,6 +111,16 @@ const Signup = () => {
 
             <Button type="submit" disabled={loading} className="w-full gradient-secondary text-secondary-foreground font-display font-bold text-lg h-12">
               {loading ? "Creating..." : "Create Account"}
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              disabled={resending}
+              onClick={handleResendVerification}
+              className="w-full border-border/50"
+            >
+              {resending ? "Sending verification..." : "Resend Verification Email"}
             </Button>
           </form>
 

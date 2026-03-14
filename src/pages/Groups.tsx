@@ -11,7 +11,9 @@ const Groups = () => {
   const { groups, loadGroups } = useGroupStore();
 
   useEffect(() => {
-    if (groups.length === 0) loadGroups();
+    if (groups.length === 0) {
+      loadGroups().catch(() => undefined);
+    }
   }, [groups.length, loadGroups]);
 
   return (

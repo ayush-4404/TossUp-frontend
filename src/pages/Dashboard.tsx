@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Plus, UserPlus, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -9,16 +9,35 @@ import GroupCard from "@/components/GroupCard";
 import LeaderboardTable from "@/components/LeaderboardTable";
 import { useMatchStore } from "@/store/matchStore";
 import { useGroupStore } from "@/store/groupStore";
-import { mockLeaderboard } from "@/lib/mockData";
+import type { LeaderboardEntry } from "@/lib/types";
 
 const Dashboard = () => {
   const { matches, loadMatches } = useMatchStore();
-  const { groups, loadGroups } = useGroupStore();
+  const { groups, loadGroups, getLeaderboard } = useGroupStore();
+  const [topPlayers, setTopPlayers] = useState<LeaderboardEntry[]>([]);
 
   useEffect(() => {
-    loadMatches();
-    loadGroups();
+    loadMatches().catch(() => undefined);
+    loadGroups().catch(() => undefined);
   }, [loadMatches, loadGroups]);
+
+  useEffect(() => {
+    const fetchTopPlayers = async () => {
+      if (groups.length === 0) {
+        setTopPlayers([]);
+        return;
+      }
+
+      try {
+        const entries = await getLeaderboard(groups[0].id);
+        setTopPlayers(entries);
+      } catch {
+        setTopPlayers([]);
+      }
+    };
+
+    fetchTopPlayers();
+  }, [groups, getLeaderboard]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -78,7 +97,7 @@ const Dashboard = () => {
               </Button>
             </Link>
           </div>
-          <LeaderboardTable entries={mockLeaderboard} compact />
+          <LeaderboardTable entries={topPlayers} compact />
         </motion.section>
       </main>
     </div>

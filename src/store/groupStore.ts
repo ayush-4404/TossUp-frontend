@@ -1,33 +1,49 @@
 import { create } from "zustand";
-import type { Group } from "@/lib/types";
-import { mockGroups } from "@/lib/mockData";
+import type { Group, LeaderboardEntry } from "@/lib/types";
+import { api } from "@/lib/api";
+import { mapGroup, mapLeaderboard } from "@/lib/adapters";
+import { useUserStore } from "@/store/userStore";
 
 interface GroupState {
   groups: Group[];
-  loadGroups: () => void;
-  createGroup: (name: string, betPrice: number) => Group;
-  joinGroup: (inviteCode: string) => Group | null;
+  loadGroups: () => Promise<void>;
+  createGroup: (name: string, betPrice: number) => Promise<Group | null>;
+  joinGroup: (inviteCode: string) => Promise<Group | null>;
+  getLeaderboard: (groupId: string) => Promise<LeaderboardEntry[]>;
   getGroup: (id: string) => Group | undefined;
 }
 
 export const useGroupStore = create<GroupState>((set, get) => ({
   groups: [],
-  loadGroups: () => set({ groups: mockGroups }),
-  createGroup: (name, betPrice) => {
-    const newGroup: Group = {
-      id: "g_" + Date.now(),
-      name,
-      betPrice,
-      inviteCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
-      createdBy: "u1",
-      members: [{ userId: "u1", name: "Virat Fan", coins: 5000, wins: 12, losses: 5 }],
-    };
-    set((state) => ({ groups: [...state.groups, newGroup] }));
-    return newGroup;
+  loadGroups: async () => {
+    const userId = useUserStore.getState().user?.id;
+    if (!userId) {
+      set({ groups: [] });
+      return;
+    }
+
+    const response = await api.get(`/groups/user/${userId}`);
+    const rows = response.data?.data || [];
+    set({ groups: rows.map(mapGroup) });
   },
-  joinGroup: (inviteCode) => {
-    const group = get().groups.find((g) => g.inviteCode === inviteCode);
-    return group || null;
+  createGroup: async (name, betPrice) => {
+    const response = await api.post("/groups/create", { name, betPrice });
+    const created = mapGroup(response.data?.data);
+    set((state) => ({ groups: [created, ...state.groups] }));
+    return created;
+  },
+  joinGroup: async (inviteCode) => {
+    const response = await api.post("/groups/join", { inviteCode });
+    const joined = mapGroup(response.data?.data);
+    set((state) => {
+      const exists = state.groups.some((group) => group.id === joined.id);
+      return { groups: exists ? state.groups : [joined, ...state.groups] };
+    });
+    return joined;
+  },
+  getLeaderboard: async (groupId) => {
+    const response = await api.get(`/leaderboard/${groupId}`);
+    return mapLeaderboard(response.data?.data?.leaderboard || []);
   },
   getGroup: (id) => get().groups.find((g) => g.id === id),
 }));

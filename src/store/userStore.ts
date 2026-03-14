@@ -1,36 +1,71 @@
 import { create } from "zustand";
 import type { User } from "@/lib/types";
-import { mockUser } from "@/lib/mockData";
+import { mapUser } from "@/lib/adapters";
+import { api, getAuthToken, getStoredUser, setAuthToken, setStoredUser } from "@/lib/api";
 
 interface UserState {
   user: User | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (name: string, email: string, password: string) => Promise<boolean>;
+  resendVerificationEmail: (email: string) => Promise<boolean>;
   logout: () => void;
   updateCoins: (amount: number) => void;
 }
 
+const initialUser = getStoredUser() as User | null;
+const initialToken = getAuthToken();
+
 export const useUserStore = create<UserState>((set) => ({
-  user: null,
-  isAuthenticated: false,
-  login: async (_email: string, _password: string) => {
-    // Mock login
-    await new Promise((r) => setTimeout(r, 800));
-    set({ user: mockUser, isAuthenticated: true });
-    return true;
+  user: initialUser,
+  isAuthenticated: Boolean(initialUser && initialToken),
+  login: async (email: string, password: string) => {
+    try {
+      const response = await api.post("/auth/login", { email, password });
+      const user = mapUser(response.data?.data?.user);
+      const token = response.data?.data?.token;
+
+      if (!token) {
+        return false;
+      }
+
+      setAuthToken(token);
+      setStoredUser(user);
+      set({ user, isAuthenticated: true });
+      return true;
+    } catch {
+      return false;
+    }
   },
-  signup: async (name: string, email: string, _password: string) => {
-    await new Promise((r) => setTimeout(r, 800));
-    set({
-      user: { ...mockUser, name, email, id: "u_new_" + Date.now() },
-      isAuthenticated: true,
-    });
-    return true;
+  signup: async (name: string, email: string, password: string) => {
+    try {
+      await api.post("/auth/signup", { name, email, password });
+      return true;
+    } catch {
+      return false;
+    }
   },
-  logout: () => set({ user: null, isAuthenticated: false }),
+  resendVerificationEmail: async (email: string) => {
+    try {
+      await api.post("/auth/resend-verification", { email });
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  logout: () => {
+    setAuthToken(null);
+    setStoredUser(null);
+    set({ user: null, isAuthenticated: false });
+  },
   updateCoins: (amount) =>
     set((state) => ({
-      user: state.user ? { ...state.user, coins: state.user.coins + amount } : null,
+      user: state.user
+        ? (() => {
+            const updated = { ...state.user, coins: state.user.coins + amount };
+            setStoredUser(updated);
+            return updated;
+          })()
+        : null,
     })),
 }));
