@@ -49,9 +49,35 @@ export interface Bet {
   matchId: string;
   groupId: string;
   userId: string;
+  userName?: string;
   teamId: string;
   amount: number;
   status: "pending" | "won" | "lost";
+  createdAt: string;
+}
+
+export interface CoinTransfer {
+  id: string;
+  groupId: string;
+  matchId: string;
+  fromUserId: string;
+  fromUserName: string;
+  toUserId: string;
+  toUserName: string;
+  amount: number;
+  createdAt: string;
+}
+
+export interface BetHistoryEntry {
+  id: string;
+  groupId: string;
+  matchId: string;
+  userId: string;
+  userName: string;
+  action: "placed" | "updated";
+  previousTeamSelected?: string | null;
+  newTeamSelected: string;
+  amount: number;
   createdAt: string;
 }
 

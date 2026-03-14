@@ -1,4 +1,14 @@
-import type { Group, GroupMember, LeaderboardEntry, Match, Team, User } from "@/lib/types";
+import type {
+  Bet,
+  BetHistoryEntry,
+  CoinTransfer,
+  Group,
+  GroupMember,
+  LeaderboardEntry,
+  Match,
+  Team,
+  User,
+} from "@/lib/types";
 
 const shortName = (name: string) => {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -72,3 +82,45 @@ export const mapLeaderboard = (rows: any[]): LeaderboardEntry[] => {
     losses: Number(row.losses || 0),
   }));
 };
+
+export const mapBet = (apiBet: any): Bet => ({
+  id: apiBet._id,
+  groupId: apiBet.groupId,
+  matchId: typeof apiBet.matchId === "string" ? apiBet.matchId : apiBet.matchId?._id,
+  userId: typeof apiBet.userId === "string" ? apiBet.userId : apiBet.userId?._id,
+  userName: typeof apiBet.userId === "string" ? undefined : apiBet.userId?.name,
+  teamId: apiBet.teamSelected,
+  amount: Number(apiBet.amount || 0),
+  status: apiBet.settled ? "won" : "pending",
+  createdAt: apiBet.createdAt,
+});
+
+export const mapCoinTransfer = (apiTransfer: any): CoinTransfer => ({
+  id: apiTransfer._id,
+  groupId: apiTransfer.groupId,
+  matchId: apiTransfer.matchId,
+  fromUserId:
+    typeof apiTransfer.fromUserId === "string" ? apiTransfer.fromUserId : apiTransfer.fromUserId?._id,
+  fromUserName:
+    typeof apiTransfer.fromUserId === "string"
+      ? "Unknown"
+      : apiTransfer.fromUserId?.name || "Unknown",
+  toUserId: typeof apiTransfer.toUserId === "string" ? apiTransfer.toUserId : apiTransfer.toUserId?._id,
+  toUserName:
+    typeof apiTransfer.toUserId === "string" ? "Unknown" : apiTransfer.toUserId?.name || "Unknown",
+  amount: Number(apiTransfer.amount || 0),
+  createdAt: apiTransfer.createdAt,
+});
+
+export const mapBetHistoryEntry = (apiRow: any): BetHistoryEntry => ({
+  id: apiRow._id,
+  groupId: apiRow.groupId,
+  matchId: apiRow.matchId,
+  userId: typeof apiRow.userId === "string" ? apiRow.userId : apiRow.userId?._id,
+  userName: typeof apiRow.userId === "string" ? "Unknown" : apiRow.userId?.name || "Unknown",
+  action: apiRow.action,
+  previousTeamSelected: apiRow.previousTeamSelected,
+  newTeamSelected: apiRow.newTeamSelected,
+  amount: Number(apiRow.amount || 0),
+  createdAt: apiRow.createdAt,
+});
