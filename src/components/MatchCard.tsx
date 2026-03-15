@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import CountdownTimer from "./CountdownTimer";
+import TeamLogo from "./TeamLogo";
 import type { Match } from "@/lib/types";
 
 interface MatchCardProps {
@@ -29,7 +30,7 @@ const MatchCard = ({ match, groupId }: MatchCardProps) => {
       <div className="flex items-center justify-between gap-4 mb-4">
         {/* Team A */}
         <div className="flex flex-col items-center gap-1 flex-1">
-          <span className="text-3xl">{match.teamA.logo}</span>
+          <TeamLogo logo={match.teamA.logo} name={match.teamA.name} shortName={match.teamA.shortName} className="h-12 w-12" />
           <span className="font-display font-bold text-sm text-foreground">{match.teamA.shortName}</span>
         </div>
 
@@ -39,7 +40,7 @@ const MatchCard = ({ match, groupId }: MatchCardProps) => {
 
         {/* Team B */}
         <div className="flex flex-col items-center gap-1 flex-1">
-          <span className="text-3xl">{match.teamB.logo}</span>
+          <TeamLogo logo={match.teamB.logo} name={match.teamB.name} shortName={match.teamB.shortName} className="h-12 w-12" />
           <span className="font-display font-bold text-sm text-foreground">{match.teamB.shortName}</span>
         </div>
       </div>

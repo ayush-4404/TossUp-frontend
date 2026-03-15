@@ -70,7 +70,15 @@ const Navbar = () => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full bg-primary/10">
-                <User className="h-5 w-5 text-primary" />
+                {user?.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={user.name || "Profile"}
+                    className="h-8 w-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <User className="h-5 w-5 text-primary" />
+                )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 bg-card border-border/50">
@@ -78,6 +86,11 @@ const Navbar = () => {
                 <p className="text-sm font-medium text-foreground">{user?.name}</p>
                 <p className="text-xs text-muted-foreground">{user?.email}</p>
               </div>
+              <DropdownMenuSeparator className="bg-border/50" />
+              <DropdownMenuItem onClick={() => navigate("/profile")}>
+                <User className="h-4 w-4 mr-2" />
+                Profile
+              </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-border/50" />
               <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
                 <LogOut className="h-4 w-4 mr-2" />

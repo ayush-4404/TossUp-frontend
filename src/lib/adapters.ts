@@ -22,13 +22,39 @@ const shortName = (name: string) => {
     .toUpperCase();
 };
 
-export const mapTeam = (teamName: string): Team => ({
-  id: teamName,
-  name: teamName,
-  shortName: shortName(teamName),
-  color: "#1f2937",
-  logo: "🏏",
-});
+const IPL_TEAM_MAP: Record<string, { shortName: string; color: string; logo: string }> = {
+  "chennai super kings":   { shortName: "CSK",  color: "#FDB913", logo: "https://en.wikipedia.org/wiki/Special:FilePath/Chennai_Super_Kings_Logo.svg" },
+  "mumbai indians":        { shortName: "MI",   color: "#004BA0", logo: "https://en.wikipedia.org/wiki/Special:FilePath/Mumbai_Indians_Logo.svg" },
+  "royal challengers bengaluru": { shortName: "RCB",  color: "#EC1C24", logo: "https://en.wikipedia.org/wiki/Special:FilePath/Royal_Challengers_Bangalore_Logo.svg" },
+  "royal challengers bangalore": { shortName: "RCB",  color: "#EC1C24", logo: "https://en.wikipedia.org/wiki/Special:FilePath/Royal_Challengers_Bangalore_Logo.svg" },
+  "kolkata knight riders": { shortName: "KKR",  color: "#3A225D", logo: "https://en.wikipedia.org/wiki/Special:FilePath/Kolkata_Knight_Riders_Logo.svg" },
+  "delhi capitals":        { shortName: "DC",   color: "#17479E", logo: "https://en.wikipedia.org/wiki/Special:FilePath/Delhi_Capitals.svg" },
+  "punjab kings":          { shortName: "PBKS", color: "#DB1F26", logo: "https://en.wikipedia.org/wiki/Special:FilePath/Punjab_Kings_Logo.svg" },
+  "rajasthan royals":      { shortName: "RR",   color: "#EA1A85", logo: "https://en.wikipedia.org/wiki/Special:FilePath/Rajasthan_Royals_Logo.svg" },
+  "sunrisers hyderabad":   { shortName: "SRH",  color: "#F7A722", logo: "https://en.wikipedia.org/wiki/Special:FilePath/Sunrisers_Hyderabad.svg" },
+  "gujarat titans":        { shortName: "GT",   color: "#1D3461", logo: "https://en.wikipedia.org/wiki/Special:FilePath/Gujarat_Titans_Logo.svg" },
+  "lucknow super giants":  { shortName: "LSG",  color: "#A4262C", logo: "https://en.wikipedia.org/wiki/Special:FilePath/Lucknow_Super_Giants.svg" },
+};
+
+const resolveIplTeam = (teamName: string) => {
+  const key = teamName.toLowerCase().trim();
+  if (IPL_TEAM_MAP[key]) return IPL_TEAM_MAP[key];
+  const entry = Object.entries(IPL_TEAM_MAP).find(
+    ([k]) => key.includes(k) || k.includes(key)
+  );
+  return entry ? entry[1] : null;
+};
+
+export const mapTeam = (teamName: string): Team => {
+  const resolved = resolveIplTeam(teamName);
+  return {
+    id: teamName,
+    name: teamName,
+    shortName: resolved?.shortName || shortName(teamName),
+    color: resolved?.color || "#1f2937",
+    logo: resolved?.logo || "🏏",
+  };
+};
 
 export const mapUser = (apiUser: any): User => ({
   id: apiUser._id,

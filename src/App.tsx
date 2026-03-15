@@ -12,6 +12,7 @@ import JoinGroup from "./pages/JoinGroup";
 import GroupDetail from "./pages/GroupDetail";
 import MatchBetting from "./pages/MatchBetting";
 import Leaderboard from "./pages/Leaderboard";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import VerifyEmail from "./pages/VerifyEmail";
 
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/groups/:id" element={<GroupDetail />} />
           <Route path="/match/:id" element={<MatchBetting />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

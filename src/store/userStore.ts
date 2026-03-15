@@ -9,6 +9,9 @@ interface UserState {
   login: (email: string, password: string) => Promise<boolean>;
   signup: (name: string, email: string, password: string) => Promise<boolean>;
   resendVerificationEmail: (email: string) => Promise<boolean>;
+  refreshProfile: () => Promise<boolean>;
+  updateProfileName: (name: string) => Promise<boolean>;
+  updateProfileImage: (file: File) => Promise<boolean>;
   logout: () => void;
   updateCoins: (amount: number) => void;
 }
@@ -48,6 +51,47 @@ export const useUserStore = create<UserState>((set) => ({
   resendVerificationEmail: async (email: string) => {
     try {
       await api.post("/auth/resend-verification", { email });
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  refreshProfile: async () => {
+    try {
+      const response = await api.get("/users/me");
+      const user = mapUser(response.data?.data);
+      setStoredUser(user);
+      set({ user, isAuthenticated: true });
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  updateProfileName: async (name) => {
+    try {
+      const response = await api.patch("/users/me", { name });
+      const user = mapUser(response.data?.data);
+      setStoredUser(user);
+      set({ user, isAuthenticated: true });
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  updateProfileImage: async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const response = await api.patch("/users/profile-image", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      const user = mapUser(response.data?.data);
+      setStoredUser(user);
+      set({ user, isAuthenticated: true });
       return true;
     } catch {
       return false;

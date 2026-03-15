@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import CountdownTimer from "@/components/CountdownTimer";
 import ConfirmBetModal from "@/components/ConfirmBetModal";
+import TeamLogo from "@/components/TeamLogo";
 import { useMatchStore } from "@/store/matchStore";
 import { useGroupStore } from "@/store/groupStore";
 import { useUserStore } from "@/store/userStore";
@@ -85,7 +86,7 @@ const MatchBetting = () => {
 
           <div className="flex items-center justify-center gap-8 mb-6">
             <div className="flex flex-col items-center gap-2">
-              <span className="text-6xl">{match.teamA.logo}</span>
+              <TeamLogo logo={match.teamA.logo} name={match.teamA.name} shortName={match.teamA.shortName} className="h-20 w-20" />
               <span className="font-display font-bold text-xl text-foreground">{match.teamA.shortName}</span>
               <span className="text-xs text-muted-foreground">{match.teamA.name}</span>
             </div>
@@ -95,9 +96,7 @@ const MatchBetting = () => {
             </div>
 
             <div className="flex flex-col items-center gap-2">
-              <span className="text-6xl">{match.teamB.logo}</span>
-              <span className="font-display font-bold text-xl text-foreground">{match.teamB.shortName}</span>
-              <span className="text-xs text-muted-foreground">{match.teamB.name}</span>
+              <TeamLogo logo={match.teamB.logo} name={match.teamB.name} shortName={match.teamB.shortName} className="h-20 w-20" />
             </div>
           </div>
 
@@ -126,7 +125,7 @@ const MatchBetting = () => {
                     : "border-border/50 hover:border-primary/50"
                 }`}
               >
-                <span className="text-4xl">{match.teamA.logo}</span>
+                <TeamLogo logo={match.teamA.logo} name={match.teamA.name} shortName={match.teamA.shortName} className="h-12 w-12" />
                 <span className="font-display font-bold text-foreground">{match.teamA.shortName}</span>
               </Button>
 
@@ -139,7 +138,7 @@ const MatchBetting = () => {
                     : "border-border/50 hover:border-secondary/50"
                 }`}
               >
-                <span className="text-4xl">{match.teamB.logo}</span>
+                <TeamLogo logo={match.teamB.logo} name={match.teamB.name} shortName={match.teamB.shortName} className="h-12 w-12" />
                 <span className="font-display font-bold text-foreground">{match.teamB.shortName}</span>
               </Button>
             </div>
