@@ -1,32 +1,53 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Copy, Coins, Users } from "lucide-react";
+import { Copy, Coins, Users, PlusCircle, Flag } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import Navbar from "@/components/Navbar";
 import MatchCard from "@/components/MatchCard";
 import LeaderboardTable from "@/components/LeaderboardTable";
 import { useGroupStore } from "@/store/groupStore";
 import { useMatchStore } from "@/store/matchStore";
+import { useUserStore } from "@/store/userStore";
 import { toast } from "@/hooks/use-toast";
 import type { BetHistoryEntry, CoinTransfer, LeaderboardEntry } from "@/lib/types";
 
 const GroupDetail = () => {
   const { id } = useParams();
-  const { groups, loadGroups } = useGroupStore();
+  const navigate = useNavigate();
+  const { groups, loadGroups, getLeaderboard } = useGroupStore();
   const {
     matches,
     bets,
     loadMatches,
+    createManualMatch,
+    declareManualMatchResult,
     loadGroupBets,
     loadGroupMatchTransfers,
     loadGroupMatchBetHistory,
   } = useMatchStore();
+  const user = useUserStore((state) => state.user);
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [transfersByMatch, setTransfersByMatch] = useState<Record<string, CoinTransfer[]>>({});
   const [betHistoryByMatch, setBetHistoryByMatch] = useState<Record<string, BetHistoryEntry[]>>({});
+  const [addManualOpen, setAddManualOpen] = useState(false);
+  const [declaringResult, setDeclaringResult] = useState(false);
+  const [creatingManual, setCreatingManual] = useState(false);
+  const [manualTeamA, setManualTeamA] = useState("");
+  const [manualTeamB, setManualTeamB] = useState("");
+  const [manualStartTime, setManualStartTime] = useState("");
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 
   useEffect(() => {
     if (groups.length === 0) {
@@ -43,13 +64,71 @@ const GroupDetail = () => {
     }
   }, [id, loadGroupBets]);
 
-  const groupMatches = useMemo(() => matches.filter((m) => m.status === "upcoming"), [matches]);
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      if (!id) {
+        setLeaderboard([]);
+        return;
+      }
+
+      try {
+        const rows = await getLeaderboard(id);
+        setLeaderboard(rows);
+      } catch {
+        setLeaderboard([]);
+      }
+    };
+
+    fetchLeaderboard();
+  }, [id, getLeaderboard]);
+
+  const group = groups.find((g) => g.id === id);
+  const isOwner = Boolean(group && user && group.createdBy === user.id);
+
+  const allGroupMatches = useMemo(
+    () =>
+      matches.filter(
+        (m) =>
+          (!m.groupId || m.groupId === id)
+      ),
+    [matches, id]
+  );
+
+  const groupMatches = useMemo(
+    () => allGroupMatches.filter((m) => m.status === "upcoming"),
+    [allGroupMatches]
+  );
+
+  const groupBets = useMemo(
+    () => bets.filter((bet) => bet.groupId === id),
+    [bets, id]
+  );
+
+  const betHistoryMatches = useMemo(() => {
+    const idsWithBets = new Set(groupBets.map((bet) => bet.matchId));
+    return allGroupMatches.filter((match) => idsWithBets.has(match.id));
+  }, [allGroupMatches, groupBets]);
+
+  const selectedMatch = useMemo(
+    () => allGroupMatches.find((m) => m.id === selectedMatchId) || null,
+    [allGroupMatches, selectedMatchId]
+  );
 
   useEffect(() => {
+    if (!selectedMatchId && betHistoryMatches.length > 0) {
+      setSelectedMatchId(betHistoryMatches[0].id);
+      return;
+    }
+
     if (!selectedMatchId && groupMatches.length > 0) {
       setSelectedMatchId(groupMatches[0].id);
+      return;
     }
-  }, [groupMatches, selectedMatchId]);
+
+    if (!selectedMatchId && allGroupMatches.length > 0) {
+      setSelectedMatchId(allGroupMatches[0].id);
+    }
+  }, [betHistoryMatches, groupMatches, allGroupMatches, selectedMatchId]);
 
   useEffect(() => {
     const fetchTransfers = async () => {
@@ -85,8 +164,6 @@ const GroupDetail = () => {
     fetchHistory();
   }, [id, selectedMatchId, loadGroupMatchBetHistory]);
 
-  const group = groups.find((g) => g.id === id);
-
   if (!group) {
     return (
       <div className="min-h-screen bg-background">
@@ -96,13 +173,78 @@ const GroupDetail = () => {
     );
   }
 
-  const leaderboard: LeaderboardEntry[] = [...group.members]
-    .sort((a, b) => b.coins - a.coins)
-    .map((m, i) => ({ rank: i + 1, userId: m.userId, name: m.name, coins: m.coins, wins: m.wins, losses: m.losses }));
-
   const copyCode = () => {
     navigator.clipboard.writeText(group.inviteCode);
     toast({ title: "Copied!" });
+  };
+
+  const handleCreateManualMatch = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!id) {
+      return;
+    }
+
+    if (!manualTeamA.trim() || !manualTeamB.trim() || !manualStartTime) {
+      toast({ title: "Missing details", description: "Please fill all fields.", variant: "destructive" });
+      return;
+    }
+
+    setCreatingManual(true);
+    try {
+      const created = await createManualMatch(id, manualTeamA.trim(), manualTeamB.trim(), new Date(manualStartTime).toISOString());
+      if (!created) {
+        throw new Error("Creation failed");
+      }
+      setAddManualOpen(false);
+      setManualTeamA("");
+      setManualTeamB("");
+      setManualStartTime("");
+      setSelectedMatchId(created.id);
+      toast({ title: "Manual match added", description: "Group members can now place bets on it." });
+    } catch {
+      toast({ title: "Failed", description: "Could not create manual match.", variant: "destructive" });
+    } finally {
+      setCreatingManual(false);
+    }
+  };
+
+  const handleDeclareResult = async (winner: string) => {
+    if (!id || !selectedMatch) {
+      return;
+    }
+
+    setDeclaringResult(true);
+    try {
+      const updated = await declareManualMatchResult(id, selectedMatch.id, winner);
+      if (!updated) {
+        throw new Error("Declare failed");
+      }
+      try {
+        const rows = await loadGroupMatchTransfers(id, selectedMatch.id);
+        setTransfersByMatch((prev) => ({ ...prev, [selectedMatch.id]: rows }));
+      } catch {
+        setTransfersByMatch((prev) => ({ ...prev, [selectedMatch.id]: [] }));
+      }
+
+      try {
+        const rows = await loadGroupMatchBetHistory(id, selectedMatch.id);
+        setBetHistoryByMatch((prev) => ({ ...prev, [selectedMatch.id]: rows }));
+      } catch {
+        setBetHistoryByMatch((prev) => ({ ...prev, [selectedMatch.id]: [] }));
+      }
+
+      try {
+        const rows = await getLeaderboard(id);
+        setLeaderboard(rows);
+      } catch {
+        setLeaderboard([]);
+      }
+      toast({ title: "Result declared", description: `${winner} marked as winner.` });
+    } catch {
+      toast({ title: "Failed", description: "Could not declare result.", variant: "destructive" });
+    } finally {
+      setDeclaringResult(false);
+    }
   };
 
   const netTransfers = useMemo(() => {
@@ -159,6 +301,15 @@ const GroupDetail = () => {
           </TabsList>
 
           <TabsContent value="matches" className="space-y-4">
+            {isOwner ? (
+              <div className="flex justify-end">
+                <Button onClick={() => setAddManualOpen(true)} className="gap-2">
+                  <PlusCircle className="h-4 w-4" />
+                  Add Manual Match
+                </Button>
+              </div>
+            ) : null}
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {groupMatches.map((match) => (
                 <div key={match.id} className="space-y-2">
@@ -166,7 +317,7 @@ const GroupDetail = () => {
                   <Button
                     variant={selectedMatchId === match.id ? "default" : "outline"}
                     className="w-full"
-                    onClick={() => setSelectedMatchId(match.id)}
+                    onClick={() => navigate(`/match/${match.id}?group=${group.id}`)}
                   >
                     View Group Bets
                   </Button>
@@ -178,6 +329,39 @@ const GroupDetail = () => {
               <h3 className="font-display font-bold text-lg text-foreground">
                 Bets for Selected Match
               </h3>
+
+              {isOwner && selectedMatch?.isManual && selectedMatch.status !== "completed" ? (
+                <div className="rounded-lg border border-border/50 p-3 bg-muted/20 space-y-2">
+                  <p className="text-sm text-muted-foreground">Declare result for this manual match</p>
+                  {new Date(selectedMatch.startTime).getTime() > Date.now() ? (
+                    <p className="text-xs text-muted-foreground">
+                      Result can be declared only after match start time.
+                    </p>
+                  ) : null}
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={declaringResult || new Date(selectedMatch.startTime).getTime() > Date.now()}
+                      onClick={() => handleDeclareResult(selectedMatch.teamA.name)}
+                      className="gap-2"
+                    >
+                      <Flag className="h-3.5 w-3.5" />
+                      {selectedMatch.teamA.shortName} won
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={declaringResult || new Date(selectedMatch.startTime).getTime() > Date.now()}
+                      onClick={() => handleDeclareResult(selectedMatch.teamB.name)}
+                      className="gap-2"
+                    >
+                      <Flag className="h-3.5 w-3.5" />
+                      {selectedMatch.teamB.shortName} won
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
 
               {selectedMatchId ? (
                 <div className="space-y-4">
@@ -193,8 +377,8 @@ const GroupDetail = () => {
                     <TableBody>
                       {bets
                         .filter((bet) => bet.matchId === selectedMatchId)
-                        .map((bet) => (
-                          <TableRow key={bet.id} className="border-border/30 hover:bg-muted/30">
+                        .map((bet, index) => (
+                          <TableRow key={bet.id || `${bet.userId}-${bet.matchId}-${index}`} className="border-border/30 hover:bg-muted/30">
                             <TableCell>{bet.userName || bet.userId}</TableCell>
                             <TableCell>{bet.teamId}</TableCell>
                             <TableCell className="text-right">{bet.amount}</TableCell>
@@ -225,8 +409,8 @@ const GroupDetail = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {(transfersByMatch[selectedMatchId] || []).map((row) => (
-                            <TableRow key={row.id} className="border-border/30 hover:bg-muted/30">
+                          {(transfersByMatch[selectedMatchId] || []).map((row, index) => (
+                            <TableRow key={row.id || `${row.fromUserId}-${row.toUserId}-${row.createdAt}-${index}`} className="border-border/30 hover:bg-muted/30">
                               <TableCell>{row.fromUserName}</TableCell>
                               <TableCell>{row.toUserName}</TableCell>
                               <TableCell className="text-right">{row.amount}</TableCell>
@@ -276,7 +460,7 @@ const GroupDetail = () => {
 
           <TabsContent value="bet-history" className="space-y-4">
             <div className="flex flex-wrap gap-2">
-              {groupMatches.map((match) => (
+              {(betHistoryMatches.length > 0 ? betHistoryMatches : allGroupMatches).map((match) => (
                 <Button
                   key={`history-${match.id}`}
                   size="sm"
@@ -286,6 +470,47 @@ const GroupDetail = () => {
                   {match.teamA.shortName} vs {match.teamB.shortName}
                 </Button>
               ))}
+            </div>
+
+            <div className="glass-card rounded-xl p-4 space-y-2">
+              <h4 className="font-display font-bold text-base text-foreground">Match Result Summary</h4>
+
+              {!selectedMatchId || !selectedMatch ? (
+                <p className="text-sm text-muted-foreground">Select a match to view summary.</p>
+              ) : selectedMatch.status !== "completed" ? (
+                <p className="text-sm text-muted-foreground">Result not declared yet for this match.</p>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    Winner: <span className="font-semibold text-foreground">{selectedMatch.winner || "Not available"}</span>
+                  </p>
+
+                  {netTransfers.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No coin transfers were generated for this result.
+                    </p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-border/50 hover:bg-transparent">
+                          <TableHead>From</TableHead>
+                          <TableHead>To</TableHead>
+                          <TableHead className="text-right">Transferred Coins</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {netTransfers.map((row, index) => (
+                          <TableRow key={`history-summary-${row.fromUserName}-${row.toUserName}-${index}`} className="border-border/30 hover:bg-muted/30">
+                            <TableCell>{row.fromUserName}</TableCell>
+                            <TableCell>{row.toUserName}</TableCell>
+                            <TableCell className="text-right">{row.amount}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </>
+              )}
             </div>
 
             <div className="glass-card rounded-xl overflow-hidden">
@@ -301,8 +526,8 @@ const GroupDetail = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(selectedMatchId ? betHistoryByMatch[selectedMatchId] || [] : []).map((row) => (
-                    <TableRow key={row.id} className="border-border/30 hover:bg-muted/30">
+                  {(selectedMatchId ? betHistoryByMatch[selectedMatchId] || [] : []).map((row, index) => (
+                    <TableRow key={row.id || `${row.userId}-${row.createdAt}-${index}`} className="border-border/30 hover:bg-muted/30">
                       <TableCell>{new Date(row.createdAt).toLocaleString()}</TableCell>
                       <TableCell>{row.userName}</TableCell>
                       <TableCell className="capitalize">{row.action}</TableCell>
@@ -347,6 +572,53 @@ const GroupDetail = () => {
             <LeaderboardTable entries={leaderboard} />
           </TabsContent>
         </Tabs>
+
+        <Dialog open={addManualOpen} onOpenChange={setAddManualOpen}>
+          <DialogContent className="glass-card border-border/50 sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add Manual Match</DialogTitle>
+              <DialogDescription>
+                Only group owner can add and settle manual matches.
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleCreateManualMatch} className="space-y-3">
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Team A</label>
+                <Input
+                  value={manualTeamA}
+                  onChange={(event) => setManualTeamA(event.target.value)}
+                  placeholder="Enter team name"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Team B</label>
+                <Input
+                  value={manualTeamB}
+                  onChange={(event) => setManualTeamB(event.target.value)}
+                  placeholder="Enter team name"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Start Time</label>
+                <Input
+                  type="datetime-local"
+                  value={manualStartTime}
+                  onChange={(event) => setManualStartTime(event.target.value)}
+                />
+              </div>
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setAddManualOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={creatingManual}>
+                  {creatingManual ? "Adding..." : "Add Match"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );

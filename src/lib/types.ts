@@ -24,6 +24,8 @@ export interface Match {
   venue: string;
   status: "upcoming" | "live" | "completed";
   winner?: string;
+  isManual?: boolean;
+  groupId?: string | null;
 }
 
 export interface Group {
@@ -87,6 +89,7 @@ export interface LeaderboardEntry {
   name: string;
   avatar?: string;
   coins: number;
+  netCoins: number;
   wins: number;
   losses: number;
 }

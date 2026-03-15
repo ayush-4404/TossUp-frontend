@@ -16,6 +16,13 @@ const getMedalColor = (rank: number) => {
 
 const LeaderboardTable = ({ entries, compact = false }: LeaderboardTableProps) => {
   const displayEntries = compact ? entries.slice(0, 5) : entries;
+  const formatSigned = (value: number) => {
+    const rounded = Math.round(value * 100) / 100;
+    if (rounded > 0) {
+      return `+${rounded.toLocaleString()}`;
+    }
+    return rounded.toLocaleString();
+  };
 
   return (
     <div className="glass-card rounded-xl overflow-hidden">
@@ -24,7 +31,7 @@ const LeaderboardTable = ({ entries, compact = false }: LeaderboardTableProps) =
           <TableRow className="border-border/50 hover:bg-transparent">
             <TableHead className="w-12 text-muted-foreground">Rank</TableHead>
             <TableHead className="text-muted-foreground">Player</TableHead>
-            <TableHead className="text-right text-muted-foreground">Coins</TableHead>
+            <TableHead className="text-right text-muted-foreground">Net Coins</TableHead>
             {!compact && (
               <>
                 <TableHead className="text-right text-muted-foreground">Wins</TableHead>
@@ -45,7 +52,9 @@ const LeaderboardTable = ({ entries, compact = false }: LeaderboardTableProps) =
               </TableCell>
               <TableCell className="font-medium text-foreground">{entry.name}</TableCell>
               <TableCell className="text-right">
-                <span className="text-secondary font-bold">{entry.coins.toLocaleString()}</span>
+                <span className={`font-bold ${entry.netCoins >= 0 ? "text-success" : "text-destructive"}`}>
+                  {formatSigned(entry.netCoins)}
+                </span>
               </TableCell>
               {!compact && (
                 <>

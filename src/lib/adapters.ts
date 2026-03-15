@@ -95,6 +95,8 @@ export const mapMatch = (apiMatch: any): Match => ({
   venue: apiMatch.venue || "TBD",
   status: apiMatch.status,
   winner: apiMatch.winner || undefined,
+  isManual: Boolean(apiMatch.isManual),
+  groupId: apiMatch.groupId || null,
 });
 
 export const mapLeaderboard = (rows: any[]): LeaderboardEntry[] => {
@@ -104,6 +106,7 @@ export const mapLeaderboard = (rows: any[]): LeaderboardEntry[] => {
     name: row.name,
     avatar: row.avatar,
     coins: Number(row.coins || 0),
+    netCoins: Number(row.netCoins || 0),
     wins: Number(row.wins || 0),
     losses: Number(row.losses || 0),
   }));
@@ -111,7 +114,7 @@ export const mapLeaderboard = (rows: any[]): LeaderboardEntry[] => {
 
 export const mapBet = (apiBet: any): Bet => ({
   id: apiBet._id,
-  groupId: apiBet.groupId,
+  groupId: typeof apiBet.groupId === "string" ? apiBet.groupId : apiBet.groupId?._id,
   matchId: typeof apiBet.matchId === "string" ? apiBet.matchId : apiBet.matchId?._id,
   userId: typeof apiBet.userId === "string" ? apiBet.userId : apiBet.userId?._id,
   userName: typeof apiBet.userId === "string" ? undefined : apiBet.userId?.name,
