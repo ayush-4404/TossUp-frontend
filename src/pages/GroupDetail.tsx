@@ -21,12 +21,12 @@ import { useGroupStore } from "@/store/groupStore";
 import { useMatchStore } from "@/store/matchStore";
 import { useUserStore } from "@/store/userStore";
 import { toast } from "@/hooks/use-toast";
-import type { BetHistoryEntry, CoinTransfer, LeaderboardEntry } from "@/lib/types";
+import type { BetHistoryEntry, CoinTransfer, GroupSettlementSummary, LeaderboardEntry } from "@/lib/types";
 
 const GroupDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { groups, loadGroups, getLeaderboard } = useGroupStore();
+  const { groups, loadGroups, getLeaderboard, getSettlementSummary } = useGroupStore();
   const {
     matches,
     bets,
@@ -48,6 +48,7 @@ const GroupDetail = () => {
   const [manualTeamB, setManualTeamB] = useState("");
   const [manualStartTime, setManualStartTime] = useState("");
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [settlementSummary, setSettlementSummary] = useState<GroupSettlementSummary | null>(null);
 
   useEffect(() => {
     if (groups.length === 0) {
@@ -81,6 +82,24 @@ const GroupDetail = () => {
 
     fetchLeaderboard();
   }, [id, getLeaderboard]);
+
+  useEffect(() => {
+    const fetchSettlementSummary = async () => {
+      if (!id) {
+        setSettlementSummary(null);
+        return;
+      }
+
+      try {
+        const summary = await getSettlementSummary(id);
+        setSettlementSummary(summary);
+      } catch {
+        setSettlementSummary(null);
+      }
+    };
+
+    fetchSettlementSummary();
+  }, [id, getSettlementSummary]);
 
   const group = groups.find((g) => g.id === id);
   const isOwner = Boolean(group && user && group.createdBy === user.id);
@@ -239,6 +258,13 @@ const GroupDetail = () => {
       } catch {
         setLeaderboard([]);
       }
+
+      try {
+        const summary = await getSettlementSummary(id);
+        setSettlementSummary(summary);
+      } catch {
+        setSettlementSummary(null);
+      }
       toast({ title: "Result declared", description: `${winner} marked as winner.` });
     } catch {
       toast({ title: "Failed", description: "Could not declare result.", variant: "destructive" });
@@ -270,6 +296,16 @@ const GroupDetail = () => {
     return Array.from(pairMap.values()).sort((a, b) => b.amount - a.amount);
   }, [selectedMatchId, transfersByMatch]);
 
+  const mySettlement = useMemo(() => {
+    if (!user || !settlementSummary) {
+      return null;
+    }
+
+    return (
+      settlementSummary.memberSummaries.find((member) => member.userId === user.id) || null
+    );
+  }, [settlementSummary, user]);
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -298,6 +334,7 @@ const GroupDetail = () => {
             <TabsTrigger value="bet-history" className="font-display font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Bet History</TabsTrigger>
             <TabsTrigger value="members" className="font-display font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Members</TabsTrigger>
             <TabsTrigger value="leaderboard" className="font-display font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Leaderboard</TabsTrigger>
+            <TabsTrigger value="settlement" className="font-display font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Settlement</TabsTrigger>
           </TabsList>
 
           <TabsContent value="matches" className="space-y-4">
@@ -570,6 +607,107 @@ const GroupDetail = () => {
 
           <TabsContent value="leaderboard">
             <LeaderboardTable entries={leaderboard} />
+          </TabsContent>
+
+          <TabsContent value="settlement" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="rounded-lg border border-border/50 p-3 bg-muted/20">
+                <p className="text-xs text-muted-foreground">Your Incoming</p>
+                <p className="text-xl font-bold text-success">{mySettlement?.incoming ?? 0}</p>
+              </div>
+              <div className="rounded-lg border border-border/50 p-3 bg-muted/20">
+                <p className="text-xs text-muted-foreground">Your Outgoing</p>
+                <p className="text-xl font-bold text-destructive">{mySettlement?.outgoing ?? 0}</p>
+              </div>
+              <div className="rounded-lg border border-border/50 p-3 bg-muted/20">
+                <p className="text-xs text-muted-foreground">Your Net</p>
+                <p
+                  className={`text-xl font-bold ${
+                    (mySettlement?.net ?? 0) > 0
+                      ? "text-success"
+                      : (mySettlement?.net ?? 0) < 0
+                        ? "text-destructive"
+                        : "text-foreground"
+                  }`}
+                >
+                  {mySettlement?.net ?? 0}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="rounded-lg border border-border/50 p-3 bg-muted/20">
+                <p className="text-xs text-muted-foreground">Group Total Incoming</p>
+                <p className="text-xl font-bold text-foreground">{settlementSummary?.totals.totalIncoming ?? 0}</p>
+              </div>
+              <div className="rounded-lg border border-border/50 p-3 bg-muted/20">
+                <p className="text-xs text-muted-foreground">Group Total Outgoing</p>
+                <p className="text-xl font-bold text-foreground">{settlementSummary?.totals.totalOutgoing ?? 0}</p>
+              </div>
+              <div className="rounded-lg border border-border/50 p-3 bg-muted/20">
+                <p className="text-xs text-muted-foreground">Transfer Rows</p>
+                <p className="text-xl font-bold text-foreground">{settlementSummary?.totals.transferCount ?? 0}</p>
+              </div>
+            </div>
+
+            <div className="glass-card rounded-xl overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border/50 hover:bg-transparent">
+                    <TableHead>Member</TableHead>
+                    <TableHead className="text-right">Incoming</TableHead>
+                    <TableHead className="text-right">Outgoing</TableHead>
+                    <TableHead className="text-right">Net</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(settlementSummary?.memberSummaries || []).map((member) => (
+                    <TableRow key={member.userId} className="border-border/30 hover:bg-muted/30">
+                      <TableCell>{member.name}</TableCell>
+                      <TableCell className="text-right text-success">{member.incoming}</TableCell>
+                      <TableCell className="text-right text-destructive">{member.outgoing}</TableCell>
+                      <TableCell className={`text-right font-semibold ${member.net > 0 ? "text-success" : member.net < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                        {member.net}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {(settlementSummary?.memberSummaries || []).length === 0 ? (
+                <p className="text-sm text-muted-foreground p-4">No settlement data yet for this group.</p>
+              ) : null}
+            </div>
+
+            <div className="glass-card rounded-xl overflow-hidden">
+              <div className="p-4 border-b border-border/50">
+                <h4 className="font-display font-bold text-base text-foreground">Who Pays Whom</h4>
+                <p className="text-xs text-muted-foreground mt-1">Minimal payment instructions based on net balances.</p>
+              </div>
+
+              {(settlementSummary?.paymentInstructions || []).length === 0 ? (
+                <p className="text-sm text-muted-foreground p-4">All members are settled. No payments pending.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border/50 hover:bg-transparent">
+                      <TableHead>Payer</TableHead>
+                      <TableHead>Receiver</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(settlementSummary?.paymentInstructions || []).map((row, index) => (
+                      <TableRow key={`${row.fromUserId}-${row.toUserId}-${index}`} className="border-border/30 hover:bg-muted/30">
+                        <TableCell>{row.fromUserName}</TableCell>
+                        <TableCell>{row.toUserName}</TableCell>
+                        <TableCell className="text-right font-semibold">{row.amount}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
 

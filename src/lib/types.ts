@@ -93,3 +93,34 @@ export interface LeaderboardEntry {
   wins: number;
   losses: number;
 }
+
+export interface GroupSettlementMember {
+  userId: string;
+  name: string;
+  email: string;
+  incoming: number;
+  outgoing: number;
+  net: number;
+  direction: "pay" | "receive" | "settled";
+}
+
+export interface GroupPaymentInstruction {
+  fromUserId: string;
+  fromUserName: string;
+  toUserId: string;
+  toUserName: string;
+  amount: number;
+}
+
+export interface GroupSettlementSummary {
+  groupId: string;
+  groupName: string;
+  totals: {
+    totalIncoming: number;
+    totalOutgoing: number;
+    transferCount: number;
+    membersWithBalance: number;
+  };
+  memberSummaries: GroupSettlementMember[];
+  paymentInstructions: GroupPaymentInstruction[];
+}

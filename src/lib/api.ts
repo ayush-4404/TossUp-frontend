@@ -5,6 +5,7 @@ const USER_KEY = "criccoins_user";
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5001",
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
@@ -51,3 +52,60 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+let refreshTokenPromise: Promise<string | null> | null = null;
+
+const requestSessionRefresh = async (): Promise<string | null> => {
+  try {
+    const response = await api.post("/auth/refresh", {});
+    const token = response.data?.data?.token ?? null;
+
+    if (!token) {
+      setAuthToken(null);
+      setStoredUser(null);
+      return null;
+    }
+
+    setAuthToken(token);
+    return token;
+  } catch {
+    setAuthToken(null);
+    setStoredUser(null);
+    return null;
+  }
+};
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config as (typeof error.config & { _retry?: boolean }) | undefined;
+    const status = error.response?.status;
+    const requestUrl = originalRequest?.url || "";
+
+    const shouldSkipRefresh = requestUrl.includes("/auth/login") || requestUrl.includes("/auth/refresh");
+
+    if (status !== 401 || !originalRequest || originalRequest._retry || shouldSkipRefresh) {
+      return Promise.reject(error);
+    }
+
+    originalRequest._retry = true;
+
+    if (!refreshTokenPromise) {
+      refreshTokenPromise = requestSessionRefresh().finally(() => {
+        refreshTokenPromise = null;
+      });
+    }
+
+    const refreshedToken = await refreshTokenPromise;
+
+    if (!refreshedToken) {
+      return Promise.reject(error);
+    }
+
+    if (originalRequest.headers) {
+      originalRequest.headers.Authorization = `Bearer ${refreshedToken}`;
+    }
+
+    return api(originalRequest);
+  }
+);

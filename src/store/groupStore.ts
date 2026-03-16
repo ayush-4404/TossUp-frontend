@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Group, LeaderboardEntry } from "@/lib/types";
+import type { Group, GroupSettlementSummary, LeaderboardEntry } from "@/lib/types";
 import { api } from "@/lib/api";
 import { mapGroup, mapLeaderboard } from "@/lib/adapters";
 import { useUserStore } from "@/store/userStore";
@@ -10,6 +10,7 @@ interface GroupState {
   createGroup: (name: string, betPrice: number) => Promise<Group | null>;
   joinGroup: (inviteCode: string) => Promise<Group | null>;
   getLeaderboard: (groupId: string) => Promise<LeaderboardEntry[]>;
+  getSettlementSummary: (groupId: string) => Promise<GroupSettlementSummary>;
   getGroup: (id: string) => Group | undefined;
 }
 
@@ -44,6 +45,41 @@ export const useGroupStore = create<GroupState>((set, get) => ({
   getLeaderboard: async (groupId) => {
     const response = await api.get(`/leaderboard/${groupId}`);
     return mapLeaderboard(response.data?.data?.leaderboard || []);
+  },
+  getSettlementSummary: async (groupId) => {
+    const response = await api.get(`/groups/${groupId}/settlement-summary`);
+    const payload = response.data?.data || {};
+
+    return {
+      groupId: payload.groupId || groupId,
+      groupName: payload.groupName || "",
+      totals: {
+        totalIncoming: Number(payload?.totals?.totalIncoming || 0),
+        totalOutgoing: Number(payload?.totals?.totalOutgoing || 0),
+        transferCount: Number(payload?.totals?.transferCount || 0),
+        membersWithBalance: Number(payload?.totals?.membersWithBalance || 0),
+      },
+      memberSummaries: Array.isArray(payload.memberSummaries)
+        ? payload.memberSummaries.map((row: any) => ({
+            userId: row.userId,
+            name: row.name,
+            email: row.email,
+            incoming: Number(row.incoming || 0),
+            outgoing: Number(row.outgoing || 0),
+            net: Number(row.net || 0),
+            direction: row.direction,
+          }))
+        : [],
+      paymentInstructions: Array.isArray(payload.paymentInstructions)
+        ? payload.paymentInstructions.map((row: any) => ({
+            fromUserId: row.fromUserId,
+            fromUserName: row.fromUserName,
+            toUserId: row.toUserId,
+            toUserName: row.toUserName,
+            amount: Number(row.amount || 0),
+          }))
+        : [],
+    };
   },
   getGroup: (id) => get().groups.find((g) => g.id === id),
 }));

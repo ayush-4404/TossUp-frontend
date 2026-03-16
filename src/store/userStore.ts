@@ -6,6 +6,7 @@ import { api, getAuthToken, getStoredUser, setAuthToken, setStoredUser } from "@
 interface UserState {
   user: User | null;
   isAuthenticated: boolean;
+  bootstrapSession: () => Promise<boolean>;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (name: string, email: string, password: string) => Promise<boolean>;
   resendVerificationEmail: (email: string) => Promise<boolean>;
@@ -22,11 +23,32 @@ const initialToken = getAuthToken();
 export const useUserStore = create<UserState>((set) => ({
   user: initialUser,
   isAuthenticated: Boolean(initialUser && initialToken),
+  bootstrapSession: async () => {
+    try {
+      const refreshResponse = await api.post("/auth/refresh", {});
+      const refreshedToken = refreshResponse.data?.data?.token || refreshResponse.data?.data?.accessToken;
+      if (refreshedToken) {
+        setAuthToken(refreshedToken);
+      }
+
+      const profileResponse = await api.get("/users/me");
+      const user = mapUser(profileResponse.data?.data);
+
+      setStoredUser(user);
+      set({ user, isAuthenticated: true });
+      return true;
+    } catch {
+      setAuthToken(null);
+      setStoredUser(null);
+      set({ user: null, isAuthenticated: false });
+      return false;
+    }
+  },
   login: async (email: string, password: string) => {
     try {
       const response = await api.post("/auth/login", { email, password });
       const user = mapUser(response.data?.data?.user);
-      const token = response.data?.data?.token;
+      const token = response.data?.data?.token || response.data?.data?.accessToken;
 
       if (!token) {
         return false;
@@ -98,6 +120,7 @@ export const useUserStore = create<UserState>((set) => ({
     }
   },
   logout: () => {
+    api.post("/auth/logout", {}).catch(() => undefined);
     setAuthToken(null);
     setStoredUser(null);
     set({ user: null, isAuthenticated: false });
