@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, Trophy, User, LogOut, Coins, Menu, X } from "lucide-react";
+import { LayoutDashboard, Users, User, LogOut, Coins, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,7 +14,6 @@ import { useState } from "react";
 const navItems = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { label: "Groups", path: "/groups", icon: Users },
-  { label: "Leaderboard", path: "/leaderboard", icon: Trophy },
 ];
 
 const Navbar = () => {

@@ -1,43 +1,22 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, UserPlus, Trophy } from "lucide-react";
+import { Plus, UserPlus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import MatchCard from "@/components/MatchCard";
 import GroupCard from "@/components/GroupCard";
-import LeaderboardTable from "@/components/LeaderboardTable";
 import { useMatchStore } from "@/store/matchStore";
 import { useGroupStore } from "@/store/groupStore";
-import type { LeaderboardEntry } from "@/lib/types";
 
 const Dashboard = () => {
   const { matches, loadMatches } = useMatchStore();
-  const { groups, loadGroups, getLeaderboard } = useGroupStore();
-  const [topPlayers, setTopPlayers] = useState<LeaderboardEntry[]>([]);
+  const { groups, loadGroups } = useGroupStore();
 
   useEffect(() => {
     loadMatches().catch(() => undefined);
     loadGroups().catch(() => undefined);
   }, [loadMatches, loadGroups]);
-
-  useEffect(() => {
-    const fetchTopPlayers = async () => {
-      if (groups.length === 0) {
-        setTopPlayers([]);
-        return;
-      }
-
-      try {
-        const entries = await getLeaderboard(groups[0].id);
-        setTopPlayers(entries);
-      } catch {
-        setTopPlayers([]);
-      }
-    };
-
-    fetchTopPlayers();
-  }, [groups, getLeaderboard]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -85,19 +64,6 @@ const Dashboard = () => {
               </div>
             )}
           </div>
-        </motion.section>
-
-        {/* Quick Leaderboard */}
-        <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display font-bold text-2xl text-foreground">🏆 Top Players</h2>
-            <Link to="/leaderboard">
-              <Button variant="ghost" size="sm" className="text-primary">
-                <Trophy className="h-4 w-4 mr-1" /> View All
-              </Button>
-            </Link>
-          </div>
-          <LeaderboardTable entries={topPlayers} compact />
         </motion.section>
       </main>
     </div>

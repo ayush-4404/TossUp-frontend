@@ -13,7 +13,6 @@ import CreateGroup from "./pages/CreateGroup";
 import JoinGroup from "./pages/JoinGroup";
 import GroupDetail from "./pages/GroupDetail";
 import MatchBetting from "./pages/MatchBetting";
-import Leaderboard from "./pages/Leaderboard";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import VerifyEmail from "./pages/VerifyEmail";
@@ -132,14 +131,6 @@ const App = () => {
               element={
                 <ProtectedRoute isAuthenticated={isAuthenticated}>
                   <MatchBetting />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/leaderboard"
-              element={
-                <ProtectedRoute isAuthenticated={isAuthenticated}>
-                  <Leaderboard />
                 </ProtectedRoute>
               }
             />
