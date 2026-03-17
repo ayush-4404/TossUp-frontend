@@ -33,7 +33,7 @@ const Navbar = () => {
       <div className="container flex h-16 items-center justify-between">
         {/* Logo */}
         <Link to="/dashboard" className="flex items-center gap-2">
-          <span className="text-2xl">🏏</span>
+          <img src="/TossUp-logo.png.jpeg" alt="TossUp" className="h-8 w-8 object-contain" />
           <span className="font-display font-bold text-xl gradient-text">TossUp</span>
         </Link>
 
