@@ -26,7 +26,7 @@ import type { BetHistoryEntry, CoinTransfer, GroupSettlementSummary, Leaderboard
 const GroupDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { groups, loadGroups, getLeaderboard, getSettlementSummary } = useGroupStore();
+  const { groups, loadGroups, fetchGroupById, getLeaderboard, getSettlementSummary } = useGroupStore();
   const {
     matches,
     bets,
@@ -49,6 +49,9 @@ const GroupDetail = () => {
   const [manualStartTime, setManualStartTime] = useState("");
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [settlementSummary, setSettlementSummary] = useState<GroupSettlementSummary | null>(null);
+  const [historyMatchId, setHistoryMatchId] = useState<string | null>(null);
+  const [isResolvingGroup, setIsResolvingGroup] = useState(true);
+  const [groupMissing, setGroupMissing] = useState(false);
 
   useEffect(() => {
     if (groups.length === 0) {
@@ -58,6 +61,55 @@ const GroupDetail = () => {
       loadMatches().catch(() => undefined);
     }
   }, [groups.length, matches.length, loadGroups, loadMatches]);
+
+  useEffect(() => {
+    let active = true;
+
+    const resolveGroup = async () => {
+      if (!id) {
+        if (!active) {
+          return;
+        }
+        setGroupMissing(true);
+        setIsResolvingGroup(false);
+        return;
+      }
+
+      const inStore = groups.some((g) => g.id === id);
+      if (inStore) {
+        if (!active) {
+          return;
+        }
+        setGroupMissing(false);
+        setIsResolvingGroup(false);
+        return;
+      }
+
+      setIsResolvingGroup(true);
+      try {
+        const fetched = await fetchGroupById(id);
+        if (!active) {
+          return;
+        }
+        setGroupMissing(!fetched);
+      } catch {
+        if (!active) {
+          return;
+        }
+        setGroupMissing(true);
+      } finally {
+        if (active) {
+          setIsResolvingGroup(false);
+        }
+      }
+    };
+
+    resolveGroup();
+
+    return () => {
+      active = false;
+    };
+  }, [id, groups, fetchGroupById]);
 
   useEffect(() => {
     if (id) {
@@ -133,6 +185,11 @@ const GroupDetail = () => {
     [allGroupMatches, selectedMatchId]
   );
 
+  const historyMatch = useMemo(
+    () => allGroupMatches.find((m) => m.id === historyMatchId) || null,
+    [allGroupMatches, historyMatchId]
+  );
+
   useEffect(() => {
     if (!selectedMatchId && betHistoryMatches.length > 0) {
       setSelectedMatchId(betHistoryMatches[0].id);
@@ -182,15 +239,6 @@ const GroupDetail = () => {
 
     fetchHistory();
   }, [id, selectedMatchId, loadGroupMatchBetHistory]);
-
-  if (!group) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <div className="container py-8 text-center text-muted-foreground">Group not found.</div>
-      </div>
-    );
-  }
 
   const copyCode = () => {
     navigator.clipboard.writeText(group.inviteCode);
@@ -296,6 +344,29 @@ const GroupDetail = () => {
     return Array.from(pairMap.values()).sort((a, b) => b.amount - a.amount);
   }, [selectedMatchId, transfersByMatch]);
 
+  const historyNetTransfers = useMemo(() => {
+    if (!historyMatchId) {
+      return [];
+    }
+
+    const rows = transfersByMatch[historyMatchId] || [];
+    const pairMap = new Map();
+
+    for (const row of rows) {
+      const key = `${row.fromUserId}->${row.toUserId}`;
+      if (!pairMap.has(key)) {
+        pairMap.set(key, {
+          fromUserName: row.fromUserName,
+          toUserName: row.toUserName,
+          amount: 0,
+        });
+      }
+      pairMap.get(key).amount += row.amount;
+    }
+
+    return Array.from(pairMap.values()).sort((a, b) => b.amount - a.amount);
+  }, [historyMatchId, transfersByMatch]);
+
   const mySettlement = useMemo(() => {
     if (!user || !settlementSummary) {
       return null;
@@ -305,6 +376,24 @@ const GroupDetail = () => {
       settlementSummary.memberSummaries.find((member) => member.userId === user.id) || null
     );
   }, [settlementSummary, user]);
+
+  if (isResolvingGroup) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container py-8 text-center text-muted-foreground">Loading group...</div>
+      </div>
+    );
+  }
+
+  if (!group || groupMissing) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container py-8 text-center text-muted-foreground">Group not found.</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -501,8 +590,11 @@ const GroupDetail = () => {
                 <Button
                   key={`history-${match.id}`}
                   size="sm"
-                  variant={selectedMatchId === match.id ? "default" : "outline"}
-                  onClick={() => setSelectedMatchId(match.id)}
+                  variant={historyMatchId === match.id ? "default" : "outline"}
+                  onClick={() => {
+                    setHistoryMatchId(match.id);
+                    setSelectedMatchId(match.id);
+                  }}
                 >
                   {match.teamA.shortName} vs {match.teamB.shortName}
                 </Button>
@@ -512,17 +604,17 @@ const GroupDetail = () => {
             <div className="glass-card rounded-xl p-4 space-y-2">
               <h4 className="font-display font-bold text-base text-foreground">Match Result Summary</h4>
 
-              {!selectedMatchId || !selectedMatch ? (
+              {!historyMatchId || !historyMatch ? (
                 <p className="text-sm text-muted-foreground">Select a match to view summary.</p>
-              ) : selectedMatch.status !== "completed" ? (
+              ) : historyMatch.status !== "completed" ? (
                 <p className="text-sm text-muted-foreground">Result not declared yet for this match.</p>
               ) : (
                 <>
                   <p className="text-sm text-muted-foreground">
-                    Winner: <span className="font-semibold text-foreground">{selectedMatch.winner || "Not available"}</span>
+                    Winner: <span className="font-semibold text-foreground">{historyMatch.winner || "Not available"}</span>
                   </p>
 
-                  {netTransfers.length === 0 ? (
+                  {historyNetTransfers.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
                       No coin transfers were generated for this result.
                     </p>
@@ -536,7 +628,7 @@ const GroupDetail = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {netTransfers.map((row, index) => (
+                        {historyNetTransfers.map((row, index) => (
                           <TableRow key={`history-summary-${row.fromUserName}-${row.toUserName}-${index}`} className="border-border/30 hover:bg-muted/30">
                             <TableCell>{row.fromUserName}</TableCell>
                             <TableCell>{row.toUserName}</TableCell>
@@ -563,7 +655,7 @@ const GroupDetail = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(selectedMatchId ? betHistoryByMatch[selectedMatchId] || [] : []).map((row, index) => (
+                  {(historyMatchId ? betHistoryByMatch[historyMatchId] || [] : []).map((row, index) => (
                     <TableRow key={row.id || `${row.userId}-${row.createdAt}-${index}`} className="border-border/30 hover:bg-muted/30">
                       <TableCell>{new Date(row.createdAt).toLocaleString()}</TableCell>
                       <TableCell>{row.userName}</TableCell>
@@ -576,7 +668,7 @@ const GroupDetail = () => {
                 </TableBody>
               </Table>
 
-              {selectedMatchId && (betHistoryByMatch[selectedMatchId] || []).length === 0 ? (
+              {historyMatchId && (betHistoryByMatch[historyMatchId] || []).length === 0 ? (
                 <p className="text-sm text-muted-foreground p-4">No bet history yet for this match.</p>
               ) : null}
             </div>

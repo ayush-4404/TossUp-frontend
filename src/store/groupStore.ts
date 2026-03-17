@@ -9,6 +9,7 @@ interface GroupState {
   loadGroups: () => Promise<void>;
   createGroup: (name: string, betPrice: number) => Promise<Group | null>;
   joinGroup: (inviteCode: string) => Promise<Group | null>;
+  fetchGroupById: (groupId: string) => Promise<Group | null>;
   getLeaderboard: (groupId: string) => Promise<LeaderboardEntry[]>;
   getSettlementSummary: (groupId: string) => Promise<GroupSettlementSummary>;
   getGroup: (id: string) => Group | undefined;
@@ -41,6 +42,20 @@ export const useGroupStore = create<GroupState>((set, get) => ({
       return { groups: exists ? state.groups : [joined, ...state.groups] };
     });
     return joined;
+  },
+  fetchGroupById: async (groupId) => {
+    const response = await api.get(`/groups/${groupId}`);
+    const fetched = mapGroup(response.data?.data);
+    set((state) => {
+      const exists = state.groups.some((group) => group.id === fetched.id);
+      if (exists) {
+        return {
+          groups: state.groups.map((group) => (group.id === fetched.id ? fetched : group)),
+        };
+      }
+      return { groups: [fetched, ...state.groups] };
+    });
+    return fetched;
   },
   getLeaderboard: async (groupId) => {
     const response = await api.get(`/leaderboard/${groupId}`);
