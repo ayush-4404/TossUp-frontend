@@ -142,7 +142,7 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
-            <Route path="*" element={<NotFound />} />
+            <Route path="*" element={isAuthenticated ? <NotFound /> : <Navigate to="/login" replace />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
