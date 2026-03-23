@@ -33,8 +33,8 @@ const Signup = () => {
     const result = await signup(name, email, password);
     setLoading(false);
     if (result.success) {
-      toast({ title: "Account created", description: "Please verify your email before logging in." });
-      navigate("/login");
+      toast({ title: "Account created", description: "An OTP has been sent to your email." });
+      navigate(`/verify-email?email=${encodeURIComponent(email)}`);
     } else {
       toast({ title: "Error", description: result.message || "Signup failed. Please try again.", variant: "destructive" });
     }
@@ -51,9 +51,9 @@ const Signup = () => {
     setResending(false);
 
     if (ok) {
-      toast({ title: "Verification sent", description: "Check your inbox for a new verification link." });
+      toast({ title: "OTP sent", description: "Check your inbox for a new verification OTP." });
     } else {
-      toast({ title: "Error", description: "Could not resend verification email.", variant: "destructive" });
+      toast({ title: "Error", description: "Could not resend verification OTP.", variant: "destructive" });
     }
   };
 
@@ -120,7 +120,7 @@ const Signup = () => {
               onClick={handleResendVerification}
               className="w-full border-border/50"
             >
-              {resending ? "Sending verification..." : "Resend Verification Email"}
+              {resending ? "Sending OTP..." : "Resend Verification OTP"}
             </Button>
           </form>
 

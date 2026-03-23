@@ -28,7 +28,7 @@ const Login = () => {
     setResending(false);
 
     if (ok) {
-      toast({ title: "Verification sent", description: "Check your inbox for a new verification link." });
+      toast({ title: "OTP sent", description: "Check your inbox for a new verification OTP." });
     } else {
       toast({ title: "Error", description: "Failed to send verification email.", variant: "destructive" });
     }
@@ -46,6 +46,10 @@ const Login = () => {
     if (result.success) {
       navigate("/dashboard");
     } else {
+      if (result.message?.toLowerCase().includes("verify your email")) {
+        navigate(`/verify-email?email=${encodeURIComponent(email)}`);
+      }
+
       toast({
         title: "Login failed",
         description: result.message || "Invalid credentials or email not verified.",
@@ -120,7 +124,7 @@ const Login = () => {
               onClick={handleResendVerification}
               className="w-full border-border/50"
             >
-              {resending ? "Sending verification..." : "Resend Verification Email"}
+              {resending ? "Sending OTP..." : "Resend Verification OTP"}
             </Button>
           </form>
 
