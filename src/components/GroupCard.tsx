@@ -42,7 +42,7 @@ const GroupCard = ({ group }: GroupCardProps) => {
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <span className="text-xs bg-muted px-2 py-1 rounded font-mono text-muted-foreground">
           {group.inviteCode}
         </span>

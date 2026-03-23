@@ -14,8 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ["Rajdhani", "sans-serif"],
-        body: ["Space Grotesk", "sans-serif"],
+        brand: ["Racing Sans One", "sans-serif"],
+        display: ["Bebas Neue", "sans-serif"],
+        body: ["Manrope", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",

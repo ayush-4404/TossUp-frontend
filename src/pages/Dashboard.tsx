@@ -14,7 +14,7 @@ const Dashboard = () => {
   const { groups, loadGroups } = useGroupStore();
 
   useEffect(() => {
-    loadMatches().catch(() => undefined);
+    loadMatches({ includeManual: false }).catch(() => undefined);
     loadGroups().catch(() => undefined);
   }, [loadMatches, loadGroups]);
 
@@ -26,21 +26,21 @@ const Dashboard = () => {
         {/* Upcoming Matches */}
         <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display font-bold text-2xl text-foreground">🔥 Upcoming Matches</h2>
+            <h2 className="font-display font-bold text-xl sm:text-2xl text-foreground">Upcoming Matches</h2>
           </div>
           <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
             {matches
               .filter((m) => m.status === "upcoming")
               .map((match) => (
-                <MatchCard key={match.id} match={match} />
+                <MatchCard key={match.id} match={match} actionMode="schedule" />
               ))}
           </div>
         </motion.section>
 
         {/* Your Groups */}
         <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display font-bold text-2xl text-foreground">👥 Your Groups</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <h2 className="font-display font-bold text-xl sm:text-2xl text-foreground">👥 Your Groups</h2>
             <div className="flex gap-2">
               <Link to="/groups/join">
                 <Button variant="outline" size="sm" className="border-border/50 text-foreground">

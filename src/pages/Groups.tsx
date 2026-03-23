@@ -21,8 +21,8 @@ const Groups = () => {
       <Navbar />
       <main className="container py-8">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="font-display font-bold text-3xl text-foreground">Your Groups</h1>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+            <h1 className="font-display font-bold text-2xl sm:text-3xl text-foreground">Your Groups</h1>
             <div className="flex gap-2">
               <Link to="/groups/join">
                 <Button variant="outline" size="sm" className="border-border/50 text-foreground">

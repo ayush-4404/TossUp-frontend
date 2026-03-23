@@ -50,6 +50,7 @@ const GroupDetail = () => {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [settlementSummary, setSettlementSummary] = useState<GroupSettlementSummary | null>(null);
   const [historyMatchId, setHistoryMatchId] = useState<string | null>(null);
+  const [selectionClearedByUser, setSelectionClearedByUser] = useState(false);
   const [isResolvingGroup, setIsResolvingGroup] = useState(true);
   const [groupMissing, setGroupMissing] = useState(false);
 
@@ -191,8 +192,7 @@ const GroupDetail = () => {
   );
 
   useEffect(() => {
-    if (!selectedMatchId && betHistoryMatches.length > 0) {
-      setSelectedMatchId(betHistoryMatches[0].id);
+    if (selectionClearedByUser && !selectedMatchId) {
       return;
     }
 
@@ -201,10 +201,15 @@ const GroupDetail = () => {
       return;
     }
 
+    if (!selectedMatchId && betHistoryMatches.length > 0) {
+      setSelectedMatchId(betHistoryMatches[0].id);
+      return;
+    }
+
     if (!selectedMatchId && allGroupMatches.length > 0) {
       setSelectedMatchId(allGroupMatches[0].id);
     }
-  }, [betHistoryMatches, groupMatches, allGroupMatches, selectedMatchId]);
+  }, [betHistoryMatches, groupMatches, allGroupMatches, selectedMatchId, selectionClearedByUser]);
 
   useEffect(() => {
     const fetchTransfers = async () => {
@@ -267,6 +272,7 @@ const GroupDetail = () => {
       setManualTeamB("");
       setManualStartTime("");
       setSelectedMatchId(created.id);
+      setSelectionClearedByUser(false);
       toast({ title: "Manual match added", description: "Group members can now place bets on it." });
     } catch {
       toast({ title: "Failed", description: "Could not create manual match.", variant: "destructive" });
@@ -403,13 +409,13 @@ const GroupDetail = () => {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-2xl p-6 mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="font-display font-bold text-2xl text-foreground">{group.name}</h1>
-              <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+              <h1 className="font-display font-bold text-xl sm:text-2xl text-foreground break-words">{group.name}</h1>
+              <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1"><Coins className="h-4 w-4 text-secondary" />{group.betPrice} coins/match</span>
                 <span className="flex items-center gap-1"><Users className="h-4 w-4 text-accent" />{group.members.length} members</span>
               </div>
             </div>
-            <Button onClick={copyCode} variant="outline" className="border-border/50 gap-2">
+            <Button onClick={copyCode} variant="outline" className="border-border/50 gap-2 w-full sm:w-auto">
               <span className="font-mono text-sm">{group.inviteCode}</span>
               <Copy className="h-4 w-4" />
             </Button>
@@ -418,18 +424,20 @@ const GroupDetail = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="matches" className="space-y-4">
-          <TabsList className="bg-muted/50 border border-border/50">
-            <TabsTrigger value="matches" className="font-display font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Matches</TabsTrigger>
-            <TabsTrigger value="bet-history" className="font-display font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Bet History</TabsTrigger>
-            <TabsTrigger value="members" className="font-display font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Members</TabsTrigger>
-            <TabsTrigger value="leaderboard" className="font-display font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Leaderboard</TabsTrigger>
-            <TabsTrigger value="settlement" className="font-display font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Settlement</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto pb-1">
+            <TabsList className="bg-muted/50 border border-border/50 w-max min-w-full">
+              <TabsTrigger value="matches" className="font-display font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Matches</TabsTrigger>
+              <TabsTrigger value="bet-history" className="font-display font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Bet History</TabsTrigger>
+              <TabsTrigger value="members" className="font-display font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Members</TabsTrigger>
+              <TabsTrigger value="leaderboard" className="font-display font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Leaderboard</TabsTrigger>
+              <TabsTrigger value="settlement" className="font-display font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Settlement</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="matches" className="space-y-4">
             {isOwner ? (
-              <div className="flex justify-end">
-                <Button onClick={() => setAddManualOpen(true)} className="gap-2">
+              <div className="flex justify-stretch sm:justify-end">
+                <Button onClick={() => setAddManualOpen(true)} className="gap-2 w-full sm:w-auto">
                   <PlusCircle className="h-4 w-4" />
                   Add Manual Match
                 </Button>
@@ -438,12 +446,20 @@ const GroupDetail = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {groupMatches.map((match) => (
-                <div key={match.id} className="space-y-2">
-                  <MatchCard match={match} groupId={group.id} />
+                <div key={match.id} className="space-y-2 w-full">
+                  <MatchCard
+                    match={match}
+                    groupId={group.id}
+                    className="w-full min-w-0 max-w-none md:w-auto md:min-w-[340px]"
+                  />
                   <Button
                     variant={selectedMatchId === match.id ? "default" : "outline"}
                     className="w-full"
-                    onClick={() => navigate(`/match/${match.id}?group=${group.id}`)}
+                    onClick={() => {
+                      setSelectedMatchId(match.id);
+                      setSelectionClearedByUser(false);
+                      navigate(`/match/${match.id}?group=${group.id}`);
+                    }}
                   >
                     View Group Bets
                   </Button>
@@ -452,9 +468,23 @@ const GroupDetail = () => {
             </div>
 
             <div className="glass-card rounded-xl p-4 space-y-4">
-              <h3 className="font-display font-bold text-lg text-foreground">
-                Bets for Selected Match
-              </h3>
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="font-display font-bold text-lg text-foreground">
+                  Bets for Selected Match
+                </h3>
+                {selectedMatchId ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedMatchId(null);
+                      setSelectionClearedByUser(true);
+                    }}
+                  >
+                    Unselect
+                  </Button>
+                ) : null}
+              </div>
 
               {isOwner && selectedMatch?.isManual && selectedMatch.status !== "completed" ? (
                 <div className="rounded-lg border border-border/50 p-3 bg-muted/20 space-y-2">
@@ -594,6 +624,7 @@ const GroupDetail = () => {
                   onClick={() => {
                     setHistoryMatchId(match.id);
                     setSelectedMatchId(match.id);
+                    setSelectionClearedByUser(false);
                   }}
                 >
                   {match.teamA.shortName} vs {match.teamB.shortName}

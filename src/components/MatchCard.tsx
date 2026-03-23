@@ -4,16 +4,23 @@ import { Button } from "@/components/ui/button";
 import CountdownTimer from "./CountdownTimer";
 import TeamLogo from "./TeamLogo";
 import type { Match } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 interface MatchCardProps {
   match: Match;
   groupId?: string;
+  className?: string;
+  actionMode?: "bet" | "schedule";
 }
 
-const MatchCard = ({ match, groupId }: MatchCardProps) => {
+const MatchCard = ({ match, groupId, className, actionMode = "bet" }: MatchCardProps) => {
   const navigate = useNavigate();
 
   const handleBet = () => {
+    if (actionMode !== "bet") {
+      return;
+    }
+
     const path = groupId ? `/match/${match.id}?group=${groupId}` : `/match/${match.id}`;
     navigate(path);
   };
@@ -23,7 +30,10 @@ const MatchCard = ({ match, groupId }: MatchCardProps) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ scale: 1.02 }}
-      className="glass-card rounded-xl p-4 min-w-[300px] md:min-w-[340px]"
+      className={cn(
+        "glass-card rounded-xl p-4 w-[84vw] min-w-[260px] max-w-[320px] md:w-auto md:min-w-[340px] md:max-w-none",
+        className
+      )}
     >
       <div className="text-xs text-muted-foreground mb-3 text-center">{match.venue}</div>
 
@@ -47,13 +57,19 @@ const MatchCard = ({ match, groupId }: MatchCardProps) => {
 
       <div className="flex flex-col items-center gap-3">
         <CountdownTimer targetTime={match.startTime} />
-        <Button
-          onClick={handleBet}
-          className="w-full gradient-primary text-primary-foreground font-display font-bold tracking-wide hover:opacity-90 transition-opacity"
-          size="sm"
-        >
-          Place Bet
-        </Button>
+        {actionMode === "bet" ? (
+          <Button
+            onClick={handleBet}
+            className="w-full gradient-primary text-primary-foreground font-display font-bold tracking-wide hover:opacity-90 transition-opacity"
+            size="sm"
+          >
+            Place Bet
+          </Button>
+        ) : (
+          <div className="w-full rounded-md border border-border/50 bg-muted/30 py-2 text-center text-xs font-semibold tracking-wide text-muted-foreground">
+            Schedule Only
+          </div>
+        )}
       </div>
     </motion.div>
   );

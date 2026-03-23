@@ -25,15 +25,14 @@ const shortName = (name: string) => {
 const IPL_TEAM_MAP: Record<string, { shortName: string; color: string; logo: string }> = {
   "chennai super kings":   { shortName: "CSK",  color: "#FDB913", logo: "https://en.wikipedia.org/wiki/Special:FilePath/Chennai_Super_Kings_Logo.svg" },
   "mumbai indians":        { shortName: "MI",   color: "#004BA0", logo: "https://en.wikipedia.org/wiki/Special:FilePath/Mumbai_Indians_Logo.svg" },
-  "royal challengers bengaluru": { shortName: "RCB",  color: "#EC1C24", logo: "https://en.wikipedia.org/wiki/Special:FilePath/Royal_Challengers_Bangalore_Logo.svg" },
-  "royal challengers bangalore": { shortName: "RCB",  color: "#EC1C24", logo: "https://en.wikipedia.org/wiki/Special:FilePath/Royal_Challengers_Bangalore_Logo.svg" },
+  "royal challengers bengaluru": { shortName: "RCB",  color: "#EC1C24", logo: "https://en.wikipedia.org/wiki/Special:FilePath/Royal_Challengers_Bengaluru_Logo.svg" },
   "kolkata knight riders": { shortName: "KKR",  color: "#3A225D", logo: "https://en.wikipedia.org/wiki/Special:FilePath/Kolkata_Knight_Riders_Logo.svg" },
   "delhi capitals":        { shortName: "DC",   color: "#17479E", logo: "https://en.wikipedia.org/wiki/Special:FilePath/Delhi_Capitals.svg" },
   "punjab kings":          { shortName: "PBKS", color: "#DB1F26", logo: "https://en.wikipedia.org/wiki/Special:FilePath/Punjab_Kings_Logo.svg" },
-  "rajasthan royals":      { shortName: "RR",   color: "#EA1A85", logo: "https://en.wikipedia.org/wiki/Special:FilePath/Rajasthan_Royals_Logo.svg" },
-  "sunrisers hyderabad":   { shortName: "SRH",  color: "#F7A722", logo: "https://en.wikipedia.org/wiki/Special:FilePath/Sunrisers_Hyderabad.svg" },
+  "rajasthan royals":      { shortName: "RR",   color: "#EA1A85", logo: "https://upload.wikimedia.org/wikipedia/en/thumb/5/5c/This_is_the_logo_for_Rajasthan_Royals%2C_a_cricket_team_playing_in_the_Indian_Premier_League_%28IPL%29.svg/1920px-This_is_the_logo_for_Rajasthan_Royals%2C_a_cricket_team_playing_in_the_Indian_Premier_League_%28IPL%29.svg.png" },
+  "sunrisers hyderabad":   { shortName: "SRH",  color: "#F7A722", logo: "https://en.wikipedia.org/wiki/Special:FilePath/Sunrisers_Hyderabad_Logo.svg" },
   "gujarat titans":        { shortName: "GT",   color: "#1D3461", logo: "https://en.wikipedia.org/wiki/Special:FilePath/Gujarat_Titans_Logo.svg" },
-  "lucknow super giants":  { shortName: "LSG",  color: "#A4262C", logo: "https://en.wikipedia.org/wiki/Special:FilePath/Lucknow_Super_Giants.svg" },
+  "lucknow super giants":  { shortName: "LSG",  color: "#A4262C", logo: "https://en.wikipedia.org/wiki/Special:FilePath/Lucknow_Super_Giants_Logo.svg" },
 };
 
 const resolveIplTeam = (teamName: string) => {

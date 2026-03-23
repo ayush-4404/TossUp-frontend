@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, User, LogOut, Coins, Menu, X } from "lucide-react";
+import { LayoutDashboard, Users, User, LogOut, Coins, Menu, X, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,7 +9,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useUserStore } from "@/store/userStore";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+const THEME_STORAGE_KEY = "tossup_theme_variant";
+type ThemeVariant = "india" | "classic" | "emerald" | "sunset";
+const DEFAULT_THEME_VARIANT: ThemeVariant = "india";
+
+const THEME_VARIANTS: Array<{ value: ThemeVariant; label: string }> = [
+  { value: "india", label: "Classic" },
+  { value: "classic", label: "Bold" },
+  { value: "emerald", label: "Emerald Rush" },
+  { value: "sunset", label: "Sunset Pop" },
+];
 
 const navItems = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
@@ -21,11 +32,41 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { user, logout } = useUserStore();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [themeVariant, setThemeVariant] = useState<ThemeVariant>(DEFAULT_THEME_VARIANT);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(THEME_STORAGE_KEY);
+    if (THEME_VARIANTS.some((variant) => variant.value === saved)) {
+      setThemeVariant(saved);
+    } else {
+      setThemeVariant(DEFAULT_THEME_VARIANT);
+    }
+  }, []);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (themeVariant === "india") {
+      root.removeAttribute("data-theme");
+    } else {
+      root.setAttribute("data-theme", themeVariant);
+    }
+    localStorage.setItem(THEME_STORAGE_KEY, themeVariant);
+  }, [themeVariant]);
 
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
+
+  const handleThemeToggle = () => {
+    setThemeVariant((prev) => {
+      const currentIndex = THEME_VARIANTS.findIndex((variant) => variant.value === prev);
+      const nextIndex = (currentIndex + 1) % THEME_VARIANTS.length;
+      return THEME_VARIANTS[nextIndex].value;
+    });
+  };
+
+  const activeThemeLabel = THEME_VARIANTS.find((variant) => variant.value === themeVariant)?.label || "Classic";
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
@@ -33,7 +74,9 @@ const Navbar = () => {
         {/* Logo */}
         <Link to="/dashboard" className="flex items-center gap-2">
           <img src="/TossUp-logo.png.jpeg" alt="TossUp" className="h-8 w-8 object-contain" />
-          <span className="font-display font-bold text-xl gradient-text">TossUp</span>
+          <span className="font-brand text-2xl sm:text-3xl leading-none tracking-wide gradient-text drop-shadow-[0_3px_12px_hsl(var(--primary)/0.45)]">
+            TossUp
+          </span>
         </Link>
 
         {/* Desktop Nav */}
@@ -58,11 +101,24 @@ const Navbar = () => {
         </nav>
 
         {/* Right side */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleThemeToggle}
+            className="gap-1.5 border-border/60 bg-muted/40 px-2 sm:px-3"
+            title={`Switch theme (current: ${activeThemeLabel})`}
+          >
+            <Palette className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline text-xs font-semibold">
+              {activeThemeLabel}
+            </span>
+          </Button>
+
           {/* Coin Balance */}
-          <div className="flex items-center gap-1.5 bg-muted/50 px-3 py-1.5 rounded-full">
+          <div className="flex items-center gap-1.5 bg-muted/50 px-2.5 sm:px-3 py-1.5 rounded-full">
             <Coins className="h-4 w-4 text-secondary" />
-            <span className="font-bold text-sm text-foreground">{user?.coins?.toLocaleString() ?? 0}</span>
+            <span className="hidden sm:inline font-bold text-sm text-foreground">{user?.coins?.toLocaleString() ?? 0}</span>
           </div>
 
           {/* Avatar Dropdown */}
