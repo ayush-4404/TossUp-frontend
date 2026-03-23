@@ -30,6 +30,10 @@ const THEME_VARIANTS: Array<{ value: ThemeVariant; label: string }> = [
   { value: "sunset", label: "Sunset Pop" },
 ];
 
+const isThemeVariant = (value: string): value is ThemeVariant => {
+  return THEME_VARIANTS.some((variant) => variant.value === value);
+};
+
 const navItems = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { label: "Groups", path: "/groups", icon: Users },
@@ -45,7 +49,7 @@ const Navbar = () => {
 
   useEffect(() => {
     const saved = localStorage.getItem(THEME_STORAGE_KEY);
-    if (THEME_VARIANTS.some((variant) => variant.value === saved)) {
+    if (saved && isThemeVariant(saved)) {
       setThemeVariant(saved);
     } else {
       setThemeVariant(DEFAULT_THEME_VARIANT);
