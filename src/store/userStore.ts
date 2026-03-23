@@ -22,15 +22,19 @@ const initialToken = getAuthToken();
 
 export const useUserStore = create<UserState>((set) => ({
   user: initialUser,
-  isAuthenticated: Boolean(initialUser && initialToken),
+  isAuthenticated: Boolean(initialToken),
   bootstrapSession: async () => {
-    try {
-      const refreshResponse = await api.post("/auth/refresh", {});
-      const refreshedToken = refreshResponse.data?.data?.token || refreshResponse.data?.data?.accessToken;
-      if (refreshedToken) {
-        setAuthToken(refreshedToken);
-      }
+    const existingToken = getAuthToken();
 
+    if (!existingToken) {
+      setAuthToken(null);
+      setStoredUser(null);
+      set({ user: null, isAuthenticated: false });
+      return false;
+    }
+
+    try {
+      // Prefer restoring session using the stored access token first.
       const profileResponse = await api.get("/users/me");
       const user = mapUser(profileResponse.data?.data);
 
@@ -38,10 +42,28 @@ export const useUserStore = create<UserState>((set) => ({
       set({ user, isAuthenticated: true });
       return true;
     } catch {
-      setAuthToken(null);
-      setStoredUser(null);
-      set({ user: null, isAuthenticated: false });
-      return false;
+      try {
+        const refreshResponse = await api.post("/auth/refresh", {});
+        const refreshedToken = refreshResponse.data?.data?.token || refreshResponse.data?.data?.accessToken;
+
+        if (!refreshedToken) {
+          throw new Error("No token returned during refresh");
+        }
+
+        setAuthToken(refreshedToken);
+
+        const profileResponse = await api.get("/users/me");
+        const user = mapUser(profileResponse.data?.data);
+
+        setStoredUser(user);
+        set({ user, isAuthenticated: true });
+        return true;
+      } catch {
+        setAuthToken(null);
+        setStoredUser(null);
+        set({ user: null, isAuthenticated: false });
+        return false;
+      }
     }
   },
   login: async (email: string, password: string) => {
