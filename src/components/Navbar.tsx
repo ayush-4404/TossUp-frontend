@@ -2,6 +2,14 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Users, User, LogOut, IndianRupee, Menu, X, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -33,6 +41,7 @@ const Navbar = () => {
   const { user, logout } = useUserStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [themeVariant, setThemeVariant] = useState<ThemeVariant>(DEFAULT_THEME_VARIANT);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(THEME_STORAGE_KEY);
@@ -54,11 +63,7 @@ const Navbar = () => {
   }, [themeVariant]);
 
   const handleLogout = () => {
-    const confirmed = window.confirm("Are you sure you want to log out?");
-    if (!confirmed) {
-      return;
-    }
-
+    setLogoutDialogOpen(false);
     logout();
     navigate("/login");
   };
@@ -152,7 +157,7 @@ const Navbar = () => {
                 Profile
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-border/50" />
-              <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+              <DropdownMenuItem onClick={() => setLogoutDialogOpen(true)} className="text-destructive focus:text-destructive">
                 <LogOut className="h-4 w-4 mr-2" />
                 Log out
               </DropdownMenuItem>
@@ -194,6 +199,25 @@ const Navbar = () => {
           })}
         </nav>
       )}
+
+      <Dialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Log out?</DialogTitle>
+            <DialogDescription>
+              You will need to log in again to access your account.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLogoutDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleLogout}>
+              Log out
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 };
