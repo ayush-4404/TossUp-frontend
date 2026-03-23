@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, User, LogOut, Coins, Menu, X, Palette } from "lucide-react";
+import { LayoutDashboard, Users, User, LogOut, IndianRupee, Menu, X, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -54,6 +54,11 @@ const Navbar = () => {
   }, [themeVariant]);
 
   const handleLogout = () => {
+    const confirmed = window.confirm("Are you sure you want to log out?");
+    if (!confirmed) {
+      return;
+    }
+
     logout();
     navigate("/login");
   };
@@ -117,7 +122,7 @@ const Navbar = () => {
 
           {/* Coin Balance */}
           <div className="flex items-center gap-1.5 bg-muted/50 px-2.5 sm:px-3 py-1.5 rounded-full">
-            <Coins className="h-4 w-4 text-secondary" />
+            <IndianRupee className="h-4 w-4 text-secondary" />
             <span className="hidden sm:inline font-bold text-sm text-foreground">{user?.coins?.toLocaleString() ?? 0}</span>
           </div>
 

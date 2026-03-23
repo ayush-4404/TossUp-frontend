@@ -30,13 +30,13 @@ const Signup = () => {
       return;
     }
     setLoading(true);
-    const success = await signup(name, email, password);
+    const result = await signup(name, email, password);
     setLoading(false);
-    if (success) {
+    if (result.success) {
       toast({ title: "Account created", description: "Please verify your email before logging in." });
       navigate("/login");
     } else {
-      toast({ title: "Error", description: "Signup failed. Please try again.", variant: "destructive" });
+      toast({ title: "Error", description: result.message || "Signup failed. Please try again.", variant: "destructive" });
     }
   };
 

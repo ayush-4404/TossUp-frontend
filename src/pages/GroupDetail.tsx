@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Copy, Coins, Users, PlusCircle, Flag } from "lucide-react";
+import { Copy, IndianRupee, Users, PlusCircle, Flag } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -411,7 +411,7 @@ const GroupDetail = () => {
             <div>
               <h1 className="font-display font-bold text-xl sm:text-2xl text-foreground break-words">{group.name}</h1>
               <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1"><Coins className="h-4 w-4 text-secondary" />{group.betPrice} coins/match</span>
+                <span className="flex items-center gap-1"><IndianRupee className="h-4 w-4 text-secondary" />{group.betPrice} coins/match</span>
                 <span className="flex items-center gap-1"><Users className="h-4 w-4 text-accent" />{group.members.length} members</span>
               </div>
             </div>

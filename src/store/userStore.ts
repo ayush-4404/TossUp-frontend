@@ -3,12 +3,29 @@ import type { User } from "@/lib/types";
 import { mapUser } from "@/lib/adapters";
 import { api, getAuthToken, getStoredUser, setAuthToken, setStoredUser } from "@/lib/api";
 
+type AuthActionResult = {
+  success: boolean;
+  message?: string;
+};
+
+const getApiErrorMessage = (error: unknown, fallback: string) => {
+  if (typeof error === "object" && error !== null) {
+    const maybeResponse = (error as { response?: { data?: { message?: unknown } } }).response;
+    const maybeMessage = maybeResponse?.data?.message;
+    if (typeof maybeMessage === "string" && maybeMessage.trim().length > 0) {
+      return maybeMessage;
+    }
+  }
+
+  return fallback;
+};
+
 interface UserState {
   user: User | null;
   isAuthenticated: boolean;
   bootstrapSession: () => Promise<boolean>;
-  login: (email: string, password: string) => Promise<boolean>;
-  signup: (name: string, email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<AuthActionResult>;
+  signup: (name: string, email: string, password: string) => Promise<AuthActionResult>;
   resendVerificationEmail: (email: string) => Promise<boolean>;
   refreshProfile: () => Promise<boolean>;
   updateProfileName: (name: string) => Promise<boolean>;
@@ -73,23 +90,29 @@ export const useUserStore = create<UserState>((set) => ({
       const token = response.data?.data?.token || response.data?.data?.accessToken;
 
       if (!token) {
-        return false;
+        return { success: false, message: "Login failed. Please try again." };
       }
 
       setAuthToken(token);
       setStoredUser(user);
       set({ user, isAuthenticated: true });
-      return true;
-    } catch {
-      return false;
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: getApiErrorMessage(error, "Login failed. Please try again."),
+      };
     }
   },
   signup: async (name: string, email: string, password: string) => {
     try {
       await api.post("/auth/signup", { name, email, password });
-      return true;
-    } catch {
-      return false;
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: getApiErrorMessage(error, "Signup failed. Please try again."),
+      };
     }
   },
   resendVerificationEmail: async (email: string) => {

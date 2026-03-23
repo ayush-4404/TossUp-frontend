@@ -41,14 +41,14 @@ const Login = () => {
       return;
     }
     setLoading(true);
-    const success = await login(email, password);
+    const result = await login(email, password);
     setLoading(false);
-    if (success) {
+    if (result.success) {
       navigate("/dashboard");
     } else {
       toast({
         title: "Login failed",
-        description: "Invalid credentials or email not verified.",
+        description: result.message || "Invalid credentials or email not verified.",
         variant: "destructive",
       });
     }

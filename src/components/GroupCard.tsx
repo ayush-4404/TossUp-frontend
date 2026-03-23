@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Users, Coins, Copy } from "lucide-react";
+import { Users, IndianRupee, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import type { Group } from "@/lib/types";
@@ -33,7 +33,7 @@ const GroupCard = ({ group }: GroupCardProps) => {
 
       <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
         <div className="flex items-center gap-1">
-          <Coins className="h-4 w-4 text-secondary" />
+          <IndianRupee className="h-4 w-4 text-secondary" />
           <span>{group.betPrice} / match</span>
         </div>
         <div className="flex items-center gap-1">
