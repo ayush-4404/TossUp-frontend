@@ -247,7 +247,15 @@ const Profile = () => {
           animate={{ opacity: 1, y: 0 }}
           className="glass-card rounded-2xl p-6 md:p-8"
         >
-          <h1 className="font-display font-bold text-3xl text-foreground mb-6">Your Profile</h1>
+          <div className="mb-6 flex items-center justify-between gap-3">
+            <h1 className="font-display font-bold text-3xl text-foreground">Your Profile</h1>
+            {!loading && !isEditingProfile ? (
+              <Button type="button" onClick={handleStartEdit} className="gradient-primary text-primary-foreground">
+                <PencilLine className="h-4 w-4" />
+                Edit Profile
+              </Button>
+            ) : null}
+          </div>
 
           {loading ? (
             <div className="space-y-5">
@@ -395,12 +403,7 @@ const Profile = () => {
                         {savingName ? "Saving..." : "Save Changes"}
                       </Button>
                     </>
-                  ) : (
-                    <Button type="button" onClick={handleStartEdit} className="gradient-primary text-primary-foreground">
-                      <PencilLine className="h-4 w-4" />
-                      Edit Profile
-                    </Button>
-                  )}
+                  ) : null}
                 </div>
               </form>
 
