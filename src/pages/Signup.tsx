@@ -119,7 +119,7 @@ const Signup = () => {
       >
         <div className="glass-card rounded-2xl p-8">
           <div className="text-center mb-8">
-            <img src="/TossUp-logo.png" alt="TossUp" className="h-14 w-14 object-contain mx-auto mb-3" />
+            <img src="/TossUp-logo.png" alt="TossUp" className="h-20 w-20 sm:h-24 sm:w-24 object-contain mx-auto mb-3" />
             <h1 className="font-brand text-4xl gradient-text tracking-wide">Join TossUp</h1>
             <p className="text-muted-foreground mt-2 text-sm">Start predicting & winning coins!</p>
           </div>
