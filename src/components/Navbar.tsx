@@ -87,7 +87,7 @@ const Navbar = () => {
       <div className="container flex h-16 items-center justify-between">
         {/* Logo */}
         <Link to="/dashboard" className="flex items-center gap-2">
-          <img src="/TossUp-logo.png.jpeg" alt="TossUp" className="h-8 w-8 object-contain" />
+          <img src="/TossUp-logo.png" alt="TossUp" className="h-12 w-12 sm:h-14 sm:w-14 rounded-full object-cover" />
           <span className="font-brand text-2xl sm:text-3xl leading-none tracking-wide gradient-text drop-shadow-[0_3px_12px_hsl(var(--primary)/0.45)]">
             TossUp
           </span>
