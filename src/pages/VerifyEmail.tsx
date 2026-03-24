@@ -3,8 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { MailCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { api, setAuthToken, setStoredUser } from "@/lib/api";
-import { mapUser } from "@/lib/adapters";
+import { useUserStore } from "@/store/userStore";
 import { toast } from "@/hooks/use-toast";
 
 const VerifyEmail = () => {
@@ -16,6 +15,8 @@ const VerifyEmail = () => {
   const [otp, setOtp] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [resending, setResending] = useState(false);
+  const verifyEmail = useUserStore((s) => s.verifyEmail);
+  const resendVerificationEmail = useUserStore((s) => s.resendVerificationEmail);
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,13 +33,9 @@ const VerifyEmail = () => {
 
     setVerifying(true);
     try {
-      const response = await api.post("/auth/verify-email", { email, otp });
-      const tokenJwt = response.data?.data?.token;
-      const user = mapUser(response.data?.data?.user);
-
-      if (tokenJwt) {
-        setAuthToken(tokenJwt);
-        setStoredUser(user);
+      const result = await verifyEmail(email, otp);
+      if (!result.success) {
+        throw new Error(result.message || "Invalid or expired OTP.");
       }
 
       toast({ title: "Email verified", description: "Your account is now active." });
@@ -62,7 +59,10 @@ const VerifyEmail = () => {
 
     setResending(true);
     try {
-      await api.post("/auth/resend-verification", { email });
+      const ok = await resendVerificationEmail(email);
+      if (!ok) {
+        throw new Error("Could not send OTP right now.");
+      }
       toast({ title: "OTP sent", description: "Check your email for a new OTP." });
     } catch (error: any) {
       toast({

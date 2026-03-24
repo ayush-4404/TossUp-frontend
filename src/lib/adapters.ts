@@ -60,6 +60,8 @@ export const mapUser = (apiUser: any): User => ({
   name: apiUser.name,
   email: apiUser.email,
   avatar: apiUser.profileImageUrl || undefined,
+  favoriteIplTeam: apiUser.favoriteIplTeam || undefined,
+  favoriteIplTeamLogo: apiUser.favoriteIplTeamLogo || undefined,
   coins: Number(apiUser.coins || 0),
   wins: Number(apiUser.wins || 0),
   losses: Number(apiUser.losses || 0),

@@ -3,9 +3,19 @@ export interface User {
   name: string;
   email: string;
   avatar?: string;
+  favoriteIplTeam?: string;
+  favoriteIplTeamLogo?: string;
   coins: number;
   wins: number;
   losses: number;
+}
+
+export interface IplTeam {
+  id: string;
+  name: string;
+  shortName: string;
+  color: string;
+  logo: string;
 }
 
 export interface Team {
