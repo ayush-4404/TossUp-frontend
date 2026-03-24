@@ -96,18 +96,20 @@ export const mapUser = (apiUser: any): User => {
   };
 };
 
-export const mapGroupMember = (member: any): GroupMember => ({
+export const mapGroupMember = (member: any): GroupMember => {
   const totalBets = Number(member.totalBets || 0);
 
-  userId: member._id || member.userId,
-  name: member.name,
-  avatar: member.profileImageUrl || member.avatar || undefined,
-  coins: Number(member.coins || 0),
-  level: Number(member.level || getLevelFromBetCount(totalBets)),
-  totalBets,
-  wins: Number(member.wins || 0),
-  losses: Number(member.losses || 0),
-});
+  return {
+    userId: member._id || member.userId,
+    name: member.name,
+    avatar: member.profileImageUrl || member.avatar || undefined,
+    coins: Number(member.coins || 0),
+    level: Number(member.level || getLevelFromBetCount(totalBets)),
+    totalBets,
+    wins: Number(member.wins || 0),
+    losses: Number(member.losses || 0),
+  };
+};
 
 export const mapPublicUserProfile = (apiUser: any): PublicUserProfile => ({
   id: apiUser._id,
