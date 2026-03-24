@@ -120,7 +120,7 @@ const Navbar = () => {
             variant="outline"
             size="sm"
             onClick={handleThemeToggle}
-            className="gap-1.5 border-border/60 bg-muted/40 px-2 sm:px-3"
+            className="hidden md:inline-flex gap-1.5 border-border/60 bg-muted/40 px-2 sm:px-3"
             title={`Switch theme (current: ${activeThemeLabel})`}
           >
             <Palette className="h-3.5 w-3.5" />
@@ -201,6 +201,18 @@ const Navbar = () => {
               </Link>
             );
           })}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleThemeToggle}
+            className="mt-2 w-full justify-start gap-2 border-border/60 bg-muted/40 px-4"
+            title={`Switch theme (current: ${activeThemeLabel})`}
+          >
+            <Palette className="h-4 w-4" />
+            <span className="text-sm font-medium">
+              Theme: {activeThemeLabel}
+            </span>
+          </Button>
         </nav>
       )}
 
