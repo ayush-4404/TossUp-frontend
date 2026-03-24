@@ -108,9 +108,11 @@ const Navbar = () => {
           </Button>
 
           {/* Coin Balance */}
-          <div className="flex items-center gap-1.5 bg-muted/50 px-2.5 sm:px-3 py-1.5 rounded-full">
-            <IndianRupee className="h-4 w-4 text-secondary" />
-            <span className="hidden sm:inline font-bold text-sm text-foreground">{user?.coins?.toLocaleString() ?? 0}</span>
+          <div className="flex items-center gap-1 rounded-full bg-muted/50 px-2 py-1.5 sm:gap-1.5 sm:px-3">
+            <IndianRupee className="h-3.5 w-3.5 text-secondary sm:h-4 sm:w-4" />
+            <span className="max-w-[72px] truncate text-[11px] font-bold leading-none text-foreground tabular-nums sm:max-w-none sm:text-sm">
+              {user?.coins?.toLocaleString() ?? 0}
+            </span>
           </div>
 
           {/* Avatar Dropdown */}
