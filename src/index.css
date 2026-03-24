@@ -91,15 +91,15 @@
   }
 
   :root[data-theme="rcb"] {
-    --background: 359 56% 11% / 0.52;
-    --background-overlay: 359 56% 11% / 0.54;
-    --foreground: 40 100% 96%;
-    --primary: 357 84% 52%;
-    --secondary: 42 78% 58%;
-    --accent: 13 94% 62%;
-    --ring: 42 78% 58%;
-    --sidebar-primary: 357 84% 52%;
-    --sidebar-ring: 42 78% 58%;
+    --background: 0 0% 7% / 0.62;
+    --background-overlay: 0 0% 7% / 0.66;
+    --foreground: 42 100% 95%;
+    --primary: 356 82% 52%;
+    --secondary: 43 92% 58%;
+    --accent: 8 86% 56%;
+    --ring: 43 92% 58%;
+    --sidebar-primary: 356 82% 52%;
+    --sidebar-ring: 43 92% 58%;
   }
 
   :root[data-theme="kkr"] {
@@ -127,15 +127,15 @@
   }
 
   :root[data-theme="pbks"] {
-    --background: 356 54% 12% / 0.52;
-    --background-overlay: 356 54% 12% / 0.54;
-    --foreground: 0 0% 98%;
-    --primary: 357 74% 48%;
+    --background: 349 62% 16% / 0.56;
+    --background-overlay: 349 62% 16% / 0.58;
+    --foreground: 0 0% 99%;
+    --primary: 355 74% 58%;
     --secondary: 0 0% 96%;
-    --accent: 348 92% 62%;
-    --ring: 357 74% 48%;
-    --sidebar-primary: 357 74% 48%;
-    --sidebar-ring: 357 74% 48%;
+    --accent: 217 20% 72%;
+    --ring: 0 0% 96%;
+    --sidebar-primary: 355 74% 58%;
+    --sidebar-ring: 0 0% 96%;
   }
 
   :root[data-theme="rr"] {
@@ -151,15 +151,15 @@
   }
 
   :root[data-theme="srh"] {
-    --background: 26 56% 11% / 0.52;
-    --background-overlay: 26 56% 11% / 0.54;
-    --foreground: 37 100% 96%;
-    --primary: 36 90% 55%;
-    --secondary: 12 86% 57%;
-    --accent: 48 96% 58%;
-    --ring: 36 90% 55%;
-    --sidebar-primary: 36 90% 55%;
-    --sidebar-ring: 36 90% 55%;
+    --background: 22 30% 9% / 0.58;
+    --background-overlay: 22 30% 9% / 0.6;
+    --foreground: 34 100% 96%;
+    --primary: 24 95% 54%;
+    --secondary: 15 88% 48%;
+    --accent: 44 98% 56%;
+    --ring: 24 95% 54%;
+    --sidebar-primary: 24 95% 54%;
+    --sidebar-ring: 24 95% 54%;
   }
 
   :root[data-theme="gt"] {
@@ -175,46 +175,46 @@
   }
 
   :root[data-theme="lsg"] {
-    --background: 218 44% 12% / 0.5;
-    --background-overlay: 218 44% 12% / 0.52;
-    --foreground: 206 100% 96%;
-    --primary: 204 84% 60%;
-    --secondary: 356 66% 42%;
-    --accent: 45 96% 58%;
-    --ring: 204 84% 60%;
-    --sidebar-primary: 204 84% 60%;
-    --sidebar-ring: 204 84% 60%;
+    --background: 220 58% 10% / 0.56;
+    --background-overlay: 220 58% 10% / 0.58;
+    --foreground: 214 100% 96%;
+    --primary: 204 90% 58%;
+    --secondary: 14 86% 56%;
+    --accent: 350 74% 52%;
+    --ring: 204 90% 58%;
+    --sidebar-primary: 204 90% 58%;
+    --sidebar-ring: 204 90% 58%;
   }
 
   :root[data-theme="classic"] {
-    --background: 218 42% 10% / 0.44;
-    --background-overlay: 218 42% 10% / 0.48;
-    --foreground: 36 56% 96%;
+    --background: 223 17% 7% / 0.68;
+    --background-overlay: 223 17% 7% / 0.72;
+    --foreground: 210 30% 94%;
 
-    --card: 216 34% 14%;
-    --card-foreground: 36 56% 96%;
+    --card: 223 14% 12%;
+    --card-foreground: 210 30% 94%;
 
-    --popover: 216 34% 14%;
-    --popover-foreground: 36 56% 96%;
+    --popover: 223 14% 12%;
+    --popover-foreground: 210 30% 94%;
 
-    --primary: 347 84% 60%;
+    --primary: 196 86% 58%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 39 94% 58%;
-    --secondary-foreground: 218 42% 10%;
+    --secondary: 156 78% 46%;
+    --secondary-foreground: 223 17% 7%;
 
-    --muted: 216 26% 20%;
-    --muted-foreground: 214 20% 71%;
+    --muted: 223 12% 17%;
+    --muted-foreground: 214 12% 72%;
 
-    --accent: 206 84% 62%;
-    --accent-foreground: 218 42% 10%;
+    --accent: 271 76% 64%;
+    --accent-foreground: 223 17% 7%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 216 24% 24%;
-    --input: 216 24% 24%;
-    --ring: 347 84% 60%;
+    --border: 223 10% 24%;
+    --input: 223 10% 24%;
+    --ring: 196 86% 58%;
 
     --success: 149 66% 44%;
     --success-foreground: 218 42% 10%;
@@ -223,14 +223,14 @@
     --silver: 215 14% 74%;
     --bronze: 26 62% 52%;
 
-    --sidebar-background: 218 40% 11%;
-    --sidebar-foreground: 36 56% 96%;
-    --sidebar-primary: 347 84% 60%;
+    --sidebar-background: 223 18% 9%;
+    --sidebar-foreground: 210 30% 94%;
+    --sidebar-primary: 196 86% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 216 28% 18%;
-    --sidebar-accent-foreground: 36 56% 96%;
-    --sidebar-border: 216 28% 20%;
-    --sidebar-ring: 347 84% 60%;
+    --sidebar-accent: 223 13% 15%;
+    --sidebar-accent-foreground: 210 30% 94%;
+    --sidebar-border: 223 12% 19%;
+    --sidebar-ring: 196 86% 58%;
   }
 
   :root[data-theme="emerald"] {
