@@ -6,6 +6,13 @@ export interface User {
   favoriteIplTeam?: string;
   favoriteIplTeamLogo?: string;
   coins: number;
+  totalGroups: number;
+  totalBets: number;
+  level: number;
+  levelStart: number;
+  nextLevelTarget: number;
+  betsToNextLevel: number;
+  levelProgressPercent: number;
   wins: number;
   losses: number;
 }

@@ -303,10 +303,45 @@ const Profile = () => {
                   ) : null}
                 </div>
 
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <div className="rounded-lg border border-border/50 p-3 bg-muted/20">
                     <p className="text-xs text-muted-foreground">Coins</p>
                     <p className="text-xl font-bold text-foreground">{user?.coins?.toLocaleString() || 0}</p>
+                  </div>
+
+                  <div className="rounded-lg border border-border/50 p-3 bg-muted/20">
+                    <p className="text-xs text-muted-foreground">Groups Joined</p>
+                    <p className="text-xl font-bold text-foreground">{user?.totalGroups || 0}</p>
+                  </div>
+
+                  <div className="rounded-lg border border-border/50 p-3 bg-muted/20">
+                    <p className="text-xs text-muted-foreground">Total Bets</p>
+                    <p className="text-xl font-bold text-foreground">{user?.totalBets || 0}</p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-border/50 p-4 bg-muted/20 space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Player Level</p>
+                      <p className="text-xl font-bold text-foreground">Level {user?.level || 1}</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {user?.betsToNextLevel || 0} bet{(user?.betsToNextLevel || 0) === 1 ? "" : "s"} to next level
+                    </p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted/60">
+                      <div
+                        className="h-full rounded-full bg-primary transition-all"
+                        style={{ width: `${Math.max(0, Math.min(100, user?.levelProgressPercent || 0))}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span>{user?.levelStart || 0} bets</span>
+                      <span>{user?.nextLevelTarget || 1} bets</span>
+                    </div>
                   </div>
                 </div>
 

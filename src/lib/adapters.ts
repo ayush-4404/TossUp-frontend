@@ -55,17 +55,42 @@ export const mapTeam = (teamName: string): Team => {
   };
 };
 
-export const mapUser = (apiUser: any): User => ({
-  id: apiUser._id,
-  name: apiUser.name,
-  email: apiUser.email,
-  avatar: apiUser.profileImageUrl || undefined,
-  favoriteIplTeam: apiUser.favoriteIplTeam || undefined,
-  favoriteIplTeamLogo: apiUser.favoriteIplTeamLogo || undefined,
-  coins: Number(apiUser.coins || 0),
-  wins: Number(apiUser.wins || 0),
-  losses: Number(apiUser.losses || 0),
-});
+export const mapUser = (apiUser: any): User => {
+  const totalBets = Number(apiUser.totalBets || 0);
+
+  const fallbackLevel =
+    totalBets < 1 ? 1 : totalBets < 5 ? 2 : totalBets < 10 ? 3 : Math.floor((totalBets - 10) / 10) + 4;
+  const level = Number(apiUser.level || fallbackLevel);
+
+  const fallbackLevelStart =
+    level <= 1 ? 0 : level === 2 ? 1 : level === 3 ? 5 : (level - 3) * 10;
+  const levelStart = Number(apiUser.levelStart ?? fallbackLevelStart);
+  const fallbackNextLevelTarget = level <= 1 ? 1 : level === 2 ? 5 : level === 3 ? 10 : levelStart + 10;
+  const nextLevelTarget = Number(apiUser.nextLevelTarget ?? fallbackNextLevelTarget);
+  const currentLevelSpan = Math.max(nextLevelTarget - levelStart, 1);
+  const fallbackProgress = Math.round(
+    (Math.min(Math.max(totalBets - levelStart, 0), currentLevelSpan) / currentLevelSpan) * 100
+  );
+
+  return {
+    id: apiUser._id,
+    name: apiUser.name,
+    email: apiUser.email,
+    avatar: apiUser.profileImageUrl || undefined,
+    favoriteIplTeam: apiUser.favoriteIplTeam || undefined,
+    favoriteIplTeamLogo: apiUser.favoriteIplTeamLogo || undefined,
+    coins: Number(apiUser.coins || 0),
+    totalGroups: Number(apiUser.totalGroups || 0),
+    totalBets,
+    level,
+    levelStart,
+    nextLevelTarget,
+    betsToNextLevel: Number(apiUser.betsToNextLevel ?? Math.max(nextLevelTarget - totalBets, 0)),
+    levelProgressPercent: Number(apiUser.levelProgressPercent ?? fallbackProgress),
+    wins: Number(apiUser.wins || 0),
+    losses: Number(apiUser.losses || 0),
+  };
+};
 
 export const mapGroupMember = (member: any): GroupMember => ({
   userId: member._id || member.userId,
