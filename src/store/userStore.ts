@@ -44,7 +44,7 @@ interface UserState {
   resetPassword: (email: string, otp: string, newPassword: string) => Promise<AuthActionResult>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<AuthActionResult>;
   refreshProfile: () => Promise<boolean>;
-  updateProfileName: (name: string) => Promise<boolean>;
+  updateProfileName: (name: string, favoriteIplTeam?: string) => Promise<boolean>;
   updateProfileImage: (file: File) => Promise<boolean>;
   logout: () => void;
   updateCoins: (amount: number) => void;
@@ -237,9 +237,9 @@ export const useUserStore = create<UserState>((set) => ({
       return false;
     }
   },
-  updateProfileName: async (name) => {
+  updateProfileName: async (name, favoriteIplTeam) => {
     try {
-      const response = await api.patch("/users/me", { name });
+      const response = await api.patch("/users/me", { name, favoriteIplTeam });
       const user = mapUser(response.data?.data);
       setStoredUser(user);
       set({ user, isAuthenticated: true });

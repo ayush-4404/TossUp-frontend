@@ -54,6 +54,138 @@
     --sidebar-ring: 45 98% 56%;
   }
 
+  :root[data-theme="basic"] {
+    --background: 217 72% 14% / 0.44;
+    --background-overlay: 217 72% 14% / 0.44;
+    --foreground: 48 100% 96%;
+    --primary: 216 84% 45%;
+    --secondary: 45 98% 56%;
+    --accent: 201 90% 59%;
+    --ring: 45 98% 56%;
+    --sidebar-primary: 216 84% 45%;
+    --sidebar-ring: 45 98% 56%;
+  }
+
+  :root[data-theme="csk"] {
+    --background: 217 56% 13% / 0.48;
+    --background-overlay: 217 56% 13% / 0.5;
+    --foreground: 48 100% 96%;
+    --primary: 45 98% 56%;
+    --secondary: 215 84% 37%;
+    --accent: 48 96% 66%;
+    --ring: 45 98% 56%;
+    --sidebar-primary: 45 98% 56%;
+    --sidebar-ring: 45 98% 56%;
+  }
+
+  :root[data-theme="mi"] {
+    --background: 215 78% 12% / 0.5;
+    --background-overlay: 215 78% 12% / 0.52;
+    --foreground: 210 100% 96%;
+    --primary: 212 100% 31%;
+    --secondary: 193 82% 60%;
+    --accent: 210 96% 46%;
+    --ring: 193 82% 60%;
+    --sidebar-primary: 212 100% 31%;
+    --sidebar-ring: 193 82% 60%;
+  }
+
+  :root[data-theme="rcb"] {
+    --background: 359 56% 11% / 0.52;
+    --background-overlay: 359 56% 11% / 0.54;
+    --foreground: 40 100% 96%;
+    --primary: 357 84% 52%;
+    --secondary: 42 78% 58%;
+    --accent: 13 94% 62%;
+    --ring: 42 78% 58%;
+    --sidebar-primary: 357 84% 52%;
+    --sidebar-ring: 42 78% 58%;
+  }
+
+  :root[data-theme="kkr"] {
+    --background: 268 46% 11% / 0.52;
+    --background-overlay: 268 46% 11% / 0.54;
+    --foreground: 42 100% 95%;
+    --primary: 267 62% 40%;
+    --secondary: 43 76% 58%;
+    --accent: 280 78% 60%;
+    --ring: 43 76% 58%;
+    --sidebar-primary: 267 62% 40%;
+    --sidebar-ring: 43 76% 58%;
+  }
+
+  :root[data-theme="dc"] {
+    --background: 216 62% 12% / 0.5;
+    --background-overlay: 216 62% 12% / 0.52;
+    --foreground: 210 100% 96%;
+    --primary: 215 74% 39%;
+    --secondary: 359 86% 60%;
+    --accent: 205 88% 60%;
+    --ring: 359 86% 60%;
+    --sidebar-primary: 215 74% 39%;
+    --sidebar-ring: 359 86% 60%;
+  }
+
+  :root[data-theme="pbks"] {
+    --background: 356 54% 12% / 0.52;
+    --background-overlay: 356 54% 12% / 0.54;
+    --foreground: 0 0% 98%;
+    --primary: 357 74% 48%;
+    --secondary: 0 0% 96%;
+    --accent: 348 92% 62%;
+    --ring: 357 74% 48%;
+    --sidebar-primary: 357 74% 48%;
+    --sidebar-ring: 357 74% 48%;
+  }
+
+  :root[data-theme="rr"] {
+    --background: 323 52% 12% / 0.52;
+    --background-overlay: 323 52% 12% / 0.54;
+    --foreground: 328 100% 97%;
+    --primary: 326 83% 51%;
+    --secondary: 201 86% 62%;
+    --accent: 336 88% 64%;
+    --ring: 201 86% 62%;
+    --sidebar-primary: 326 83% 51%;
+    --sidebar-ring: 201 86% 62%;
+  }
+
+  :root[data-theme="srh"] {
+    --background: 26 56% 11% / 0.52;
+    --background-overlay: 26 56% 11% / 0.54;
+    --foreground: 37 100% 96%;
+    --primary: 36 90% 55%;
+    --secondary: 12 86% 57%;
+    --accent: 48 96% 58%;
+    --ring: 36 90% 55%;
+    --sidebar-primary: 36 90% 55%;
+    --sidebar-ring: 36 90% 55%;
+  }
+
+  :root[data-theme="gt"] {
+    --background: 220 54% 11% / 0.52;
+    --background-overlay: 220 54% 11% / 0.54;
+    --foreground: 220 100% 96%;
+    --primary: 219 54% 25%;
+    --secondary: 205 96% 62%;
+    --accent: 224 80% 56%;
+    --ring: 205 96% 62%;
+    --sidebar-primary: 219 54% 25%;
+    --sidebar-ring: 205 96% 62%;
+  }
+
+  :root[data-theme="lsg"] {
+    --background: 218 44% 12% / 0.5;
+    --background-overlay: 218 44% 12% / 0.52;
+    --foreground: 206 100% 96%;
+    --primary: 204 84% 60%;
+    --secondary: 356 66% 42%;
+    --accent: 45 96% 58%;
+    --ring: 204 84% 60%;
+    --sidebar-primary: 204 84% 60%;
+    --sidebar-ring: 204 84% 60%;
+  }
+
   :root[data-theme="classic"] {
     --background: 218 42% 10% / 0.44;
     --background-overlay: 218 42% 10% / 0.48;

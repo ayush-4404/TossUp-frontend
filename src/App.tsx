@@ -5,6 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useUserStore } from "@/store/userStore";
+import { applyThemeToDocument, getSavedThemeMode, resolveTheme } from "@/lib/theme";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
@@ -16,6 +17,7 @@ import MatchBetting from "./pages/MatchBetting";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import VerifyEmail from "./pages/VerifyEmail";
+import ForgotPassword from "./pages/ForgotPassword";
 
 const queryClient = new QueryClient();
 
@@ -39,12 +41,23 @@ const App = () => {
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const bootstrapSession = useUserStore((s) => s.bootstrapSession);
   const isAuthenticated = useUserStore((s) => s.isAuthenticated);
+  const user = useUserStore((s) => s.user);
 
   useEffect(() => {
     bootstrapSession().finally(() => {
       setIsBootstrapping(false);
     });
   }, [bootstrapSession]);
+
+  useEffect(() => {
+    if (isBootstrapping) {
+      return;
+    }
+
+    const mode = getSavedThemeMode();
+    const resolvedTheme = resolveTheme(user, isAuthenticated, mode);
+    applyThemeToDocument(resolvedTheme);
+  }, [isBootstrapping, isAuthenticated, user]);
 
   if (isBootstrapping) {
     return (
@@ -83,6 +96,14 @@ const App = () => {
               element={
                 <PublicOnlyRoute isAuthenticated={isAuthenticated}>
                   <VerifyEmail />
+                </PublicOnlyRoute>
+              }
+            />
+            <Route
+              path="/forgot-password"
+              element={
+                <PublicOnlyRoute isAuthenticated={isAuthenticated}>
+                  <ForgotPassword />
                 </PublicOnlyRoute>
               }
             />

@@ -18,21 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useUserStore } from "@/store/userStore";
 import { useEffect, useState } from "react";
-
-const THEME_STORAGE_KEY = "tossup_theme_variant";
-type ThemeVariant = "india" | "classic" | "emerald" | "sunset";
-const DEFAULT_THEME_VARIANT: ThemeVariant = "india";
-
-const THEME_VARIANTS: Array<{ value: ThemeVariant; label: string }> = [
-  { value: "india", label: "Classic" },
-  { value: "classic", label: "Bold" },
-  { value: "emerald", label: "Emerald Rush" },
-  { value: "sunset", label: "Sunset Pop" },
-];
-
-const isThemeVariant = (value: string): value is ThemeVariant => {
-  return THEME_VARIANTS.some((variant) => variant.value === value);
-};
+import { applyThemeToDocument, getSavedThemeMode, resolveTheme, saveThemeMode, type ThemeMode } from "@/lib/theme";
 
 const navItems = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
@@ -42,29 +28,20 @@ const navItems = [
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useUserStore();
+  const { user, isAuthenticated, logout } = useUserStore();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [themeVariant, setThemeVariant] = useState<ThemeVariant>(DEFAULT_THEME_VARIANT);
+  const [themeMode, setThemeMode] = useState<ThemeMode>("team");
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem(THEME_STORAGE_KEY);
-    if (saved && isThemeVariant(saved)) {
-      setThemeVariant(saved);
-    } else {
-      setThemeVariant(DEFAULT_THEME_VARIANT);
-    }
+    setThemeMode(getSavedThemeMode());
   }, []);
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (themeVariant === "india") {
-      root.removeAttribute("data-theme");
-    } else {
-      root.setAttribute("data-theme", themeVariant);
-    }
-    localStorage.setItem(THEME_STORAGE_KEY, themeVariant);
-  }, [themeVariant]);
+    const resolvedTheme = resolveTheme(user, isAuthenticated, themeMode);
+    applyThemeToDocument(resolvedTheme);
+    saveThemeMode(themeMode);
+  }, [user, isAuthenticated, themeMode]);
 
   const handleLogout = () => {
     setLogoutDialogOpen(false);
@@ -73,14 +50,15 @@ const Navbar = () => {
   };
 
   const handleThemeToggle = () => {
-    setThemeVariant((prev) => {
-      const currentIndex = THEME_VARIANTS.findIndex((variant) => variant.value === prev);
-      const nextIndex = (currentIndex + 1) % THEME_VARIANTS.length;
-      return THEME_VARIANTS[nextIndex].value;
-    });
+    setThemeMode((prev) => (prev === "team" ? "basic" : "team"));
   };
 
-  const activeThemeLabel = THEME_VARIANTS.find((variant) => variant.value === themeVariant)?.label || "Classic";
+  const activeThemeLabel =
+    themeMode === "team"
+      ? user?.favoriteIplTeam
+        ? `${user.favoriteIplTeam} Theme`
+        : "Basic Theme"
+      : "Basic Theme";
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
@@ -125,7 +103,7 @@ const Navbar = () => {
           >
             <Palette className="h-3.5 w-3.5" />
             <span className="hidden sm:inline text-xs font-semibold">
-              {activeThemeLabel}
+              {themeMode === "team" ? "Team Theme" : "Basic Theme"}
             </span>
           </Button>
 
@@ -210,7 +188,7 @@ const Navbar = () => {
           >
             <Palette className="h-4 w-4" />
             <span className="text-sm font-medium">
-              Theme: {activeThemeLabel}
+              {themeMode === "team" ? "Team Theme" : "Basic Theme"}
             </span>
           </Button>
         </nav>

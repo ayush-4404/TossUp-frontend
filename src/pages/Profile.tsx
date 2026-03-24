@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
 import { useUserStore } from "@/store/userStore";
+import type { IplTeam } from "@/lib/types";
 
 const Profile = () => {
   const {
@@ -17,11 +18,13 @@ const Profile = () => {
     refreshProfile,
     updateProfileName,
     updateProfileImage,
-    forgotPassword,
-    resetPassword,
     changePassword,
+    getIplTeams,
   } = useUserStore();
   const [name, setName] = useState(user?.name || "");
+  const [favoriteIplTeam, setFavoriteIplTeam] = useState(user?.favoriteIplTeam || "");
+  const [iplTeams, setIplTeams] = useState<IplTeam[]>([]);
+  const [loadingTeams, setLoadingTeams] = useState(true);
   const [loading, setLoading] = useState(true);
   const [savingName, setSavingName] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -29,16 +32,35 @@ const Profile = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
-  const [resetOtp, setResetOtp] = useState("");
-  const [resetNewPassword, setResetNewPassword] = useState("");
-  const [resetConfirmPassword, setResetConfirmPassword] = useState("");
-  const [sendingResetCode, setSendingResetCode] = useState(false);
-  const [resettingPassword, setResettingPassword] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setName(user?.name || "");
-  }, [user?.name]);
+    setFavoriteIplTeam(user?.favoriteIplTeam || "");
+  }, [user?.name, user?.favoriteIplTeam]);
+
+  useEffect(() => {
+    const loadTeams = async () => {
+      setLoadingTeams(true);
+      const result = await getIplTeams();
+      setLoadingTeams(false);
+
+      if (!result.success) {
+        toast({
+          title: "Could not load IPL teams",
+          description: result.message || "Try again in a moment.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setIplTeams(result.teams || []);
+    };
+
+    loadTeams().catch(() => {
+      setLoadingTeams(false);
+    });
+  }, [getIplTeams]);
 
   useEffect(() => {
     const load = async () => {
@@ -88,7 +110,7 @@ const Profile = () => {
     }
 
     setSavingName(true);
-    const ok = await updateProfileName(trimmed);
+    const ok = await updateProfileName(trimmed, favoriteIplTeam);
     setSavingName(false);
 
     if (ok) {
@@ -188,96 +210,6 @@ const Profile = () => {
     });
   };
 
-  const handleForgotPassword = async () => {
-    if (!user?.email) {
-      toast({
-        title: "Email missing",
-        description: "Could not find your email address.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSendingResetCode(true);
-    const result = await forgotPassword(user.email);
-    setSendingResetCode(false);
-
-    if (result.success) {
-      toast({
-        title: "Reset code sent",
-        description: "A 6-digit password reset code has been sent to your email.",
-      });
-      return;
-    }
-
-    toast({
-      title: "Failed to send code",
-      description: result.message || "Could not send reset code.",
-      variant: "destructive",
-    });
-  };
-
-  const handleResetPassword = async (event: React.FormEvent) => {
-    event.preventDefault();
-
-    if (!user?.email || !resetOtp || !resetNewPassword || !resetConfirmPassword) {
-      toast({
-        title: "Missing fields",
-        description: "Enter OTP and new password details.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!/^\d{6}$/.test(resetOtp)) {
-      toast({
-        title: "Invalid OTP",
-        description: "OTP must be exactly 6 digits.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (resetNewPassword.length < 6) {
-      toast({
-        title: "Weak password",
-        description: "New password must be at least 6 characters.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (resetNewPassword !== resetConfirmPassword) {
-      toast({
-        title: "Password mismatch",
-        description: "New password and confirm password do not match.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setResettingPassword(true);
-    const result = await resetPassword(user.email, resetOtp, resetNewPassword);
-    setResettingPassword(false);
-
-    if (result.success) {
-      setResetOtp("");
-      setResetNewPassword("");
-      setResetConfirmPassword("");
-      toast({
-        title: "Password reset",
-        description: "Your password has been reset successfully.",
-      });
-      return;
-    }
-
-    toast({
-      title: "Reset failed",
-      description: result.message || "Could not reset password.",
-      variant: "destructive",
-    });
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -347,6 +279,30 @@ const Profile = () => {
                   <Input id="email" value={user?.email || ""} readOnly className="bg-muted/30 border-border/40" />
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="favorite-team">Favourite IPL Team</Label>
+                  <select
+                    id="favorite-team"
+                    value={favoriteIplTeam}
+                    onChange={(event) => setFavoriteIplTeam(event.target.value)}
+                    className="w-full h-10 rounded-md border border-border/50 bg-muted/40 px-3 text-sm text-foreground"
+                    disabled={loadingTeams}
+                  >
+                    <option value="">No favourite team</option>
+                    {iplTeams.map((team) => (
+                      <option key={team.id} value={team.name}>
+                        {team.name}
+                      </option>
+                    ))}
+                  </select>
+                  {user?.favoriteIplTeamLogo ? (
+                    <div className="flex items-center gap-2 pt-1">
+                      <img src={user.favoriteIplTeamLogo} alt={user.favoriteIplTeam || "Team"} className="h-5 w-5 object-contain" />
+                      <span className="text-xs text-muted-foreground">Current: {user.favoriteIplTeam}</span>
+                    </div>
+                  ) : null}
+                </div>
+
                 <div className="grid grid-cols-1 gap-3">
                   <div className="rounded-lg border border-border/50 p-3 bg-muted/20">
                     <p className="text-xs text-muted-foreground">Coins</p>
@@ -405,60 +361,6 @@ const Profile = () => {
 
                   <Button type="submit" disabled={changingPassword} className="gradient-primary text-primary-foreground">
                     {changingPassword ? "Updating..." : "Change Password"}
-                  </Button>
-                </form>
-              </section>
-
-              <section className="rounded-lg border border-border/50 p-4 bg-muted/20 space-y-4">
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">Forgot Password</h2>
-                  <p className="text-xs text-muted-foreground">Send a reset code to your email and set a new password.</p>
-                </div>
-
-                <Button type="button" variant="outline" onClick={handleForgotPassword} disabled={sendingResetCode}>
-                  {sendingResetCode ? "Sending code..." : "Send Reset Code"}
-                </Button>
-
-                <form onSubmit={handleResetPassword} className="space-y-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="reset-otp">Reset OTP</Label>
-                    <Input
-                      id="reset-otp"
-                      inputMode="numeric"
-                      maxLength={6}
-                      value={resetOtp}
-                      onChange={(event) => setResetOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
-                      className="bg-muted/40 border-border/50"
-                      placeholder="Enter 6-digit OTP"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="reset-new-password">New Password</Label>
-                    <Input
-                      id="reset-new-password"
-                      type="password"
-                      value={resetNewPassword}
-                      onChange={(event) => setResetNewPassword(event.target.value)}
-                      className="bg-muted/40 border-border/50"
-                      placeholder="Enter new password"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="reset-confirm-password">Confirm New Password</Label>
-                    <Input
-                      id="reset-confirm-password"
-                      type="password"
-                      value={resetConfirmPassword}
-                      onChange={(event) => setResetConfirmPassword(event.target.value)}
-                      className="bg-muted/40 border-border/50"
-                      placeholder="Confirm new password"
-                    />
-                  </div>
-
-                  <Button type="submit" disabled={resettingPassword} className="gradient-primary text-primary-foreground">
-                    {resettingPassword ? "Resetting..." : "Reset Password"}
                   </Button>
                 </form>
               </section>

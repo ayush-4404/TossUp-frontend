@@ -126,6 +126,10 @@ const Login = () => {
             >
               {resending ? "Sending OTP..." : "Resend Verification OTP"}
             </Button>
+
+            <Link to="/forgot-password" className="block text-center text-sm text-primary hover:underline">
+              Forgot Password?
+            </Link>
           </form>
 
           {/* Google placeholder */}
