@@ -59,8 +59,26 @@ export interface GroupMember {
   name: string;
   avatar?: string;
   coins: number;
+  level: number;
+  totalBets: number;
   wins: number;
   losses: number;
+}
+
+export interface PublicUserProfile {
+  id: string;
+  name: string;
+  avatar?: string;
+  favoriteIplTeam?: string;
+  favoriteIplTeamLogo?: string;
+  coins: number;
+  totalGroups: number;
+  totalBets: number;
+  level: number;
+  levelStart: number;
+  nextLevelTarget: number;
+  betsToNextLevel: number;
+  levelProgressPercent: number;
 }
 
 export interface Bet {

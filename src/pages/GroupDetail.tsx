@@ -21,12 +21,19 @@ import { useGroupStore } from "@/store/groupStore";
 import { useMatchStore } from "@/store/matchStore";
 import { useUserStore } from "@/store/userStore";
 import { toast } from "@/hooks/use-toast";
-import type { BetHistoryEntry, CoinTransfer, GroupSettlementSummary, LeaderboardEntry } from "@/lib/types";
+import type {
+  BetHistoryEntry,
+  CoinTransfer,
+  GroupSettlementSummary,
+  LeaderboardEntry,
+  PublicUserProfile,
+} from "@/lib/types";
 
 const GroupDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { groups, loadGroups, fetchGroupById, getLeaderboard, getSettlementSummary } = useGroupStore();
+  const { groups, loadGroups, fetchGroupById, getLeaderboard, getSettlementSummary, getPublicUserProfile } =
+    useGroupStore();
   const {
     matches,
     bets,
@@ -50,6 +57,9 @@ const GroupDetail = () => {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [settlementSummary, setSettlementSummary] = useState<GroupSettlementSummary | null>(null);
   const [historyMatchId, setHistoryMatchId] = useState<string | null>(null);
+  const [memberProfileOpen, setMemberProfileOpen] = useState(false);
+  const [memberProfileLoading, setMemberProfileLoading] = useState(false);
+  const [selectedMemberProfile, setSelectedMemberProfile] = useState<PublicUserProfile | null>(null);
   const [selectionClearedByUser, setSelectionClearedByUser] = useState(false);
   const [isResolvingGroup, setIsResolvingGroup] = useState(true);
   const [groupMissing, setGroupMissing] = useState(false);
@@ -248,6 +258,25 @@ const GroupDetail = () => {
   const copyCode = () => {
     navigator.clipboard.writeText(group.inviteCode);
     toast({ title: "Copied!" });
+  };
+
+  const openMemberProfile = async (memberUserId: string) => {
+    setMemberProfileOpen(true);
+    setMemberProfileLoading(true);
+
+    try {
+      const profile = await getPublicUserProfile(memberUserId);
+      setSelectedMemberProfile(profile);
+    } catch {
+      setSelectedMemberProfile(null);
+      toast({
+        title: "Failed",
+        description: "Could not load member profile.",
+        variant: "destructive",
+      });
+    } finally {
+      setMemberProfileLoading(false);
+    }
   };
 
   const handleCreateManualMatch = async (event: React.FormEvent) => {
@@ -705,14 +734,43 @@ const GroupDetail = () => {
                 <TableHeader>
                   <TableRow className="border-border/50 hover:bg-transparent">
                     <TableHead className="text-muted-foreground">Player</TableHead>
+                    <TableHead className="text-right text-muted-foreground">Level</TableHead>
                     <TableHead className="text-right text-muted-foreground">Coins</TableHead>
                     <TableHead className="text-right text-muted-foreground">Wins</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {group.members.map((m) => (
-                    <TableRow key={m.userId} className="border-border/30 hover:bg-muted/30">
-                      <TableCell className="font-medium text-foreground">{m.name}</TableCell>
+                    <TableRow
+                      key={m.userId}
+                      className="border-border/30 hover:bg-muted/30 cursor-pointer"
+                      onClick={() => openMemberProfile(m.userId)}
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          {m.avatar ? (
+                            <img
+                              src={m.avatar}
+                              alt={m.name}
+                              className="h-9 w-9 rounded-full object-cover border border-border/60"
+                            />
+                          ) : (
+                            <div className="h-9 w-9 rounded-full border border-border/60 bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">
+                              {m.name
+                                .split(/\s+/)
+                                .filter(Boolean)
+                                .slice(0, 2)
+                                .map((part) => part[0]?.toUpperCase() || "")
+                                .join("") || "U"}
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-medium text-foreground">{m.name}</p>
+                            <p className="text-[11px] text-muted-foreground">{m.totalBets} bets</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right text-foreground font-semibold">L{m.level}</TableCell>
                       <TableCell className="text-right text-secondary font-bold">{m.coins.toLocaleString()}</TableCell>
                       <TableCell className="text-right text-success font-medium">{m.wins}</TableCell>
                     </TableRow>
@@ -872,6 +930,101 @@ const GroupDetail = () => {
                 </Button>
               </DialogFooter>
             </form>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={memberProfileOpen}
+          onOpenChange={(open) => {
+            setMemberProfileOpen(open);
+            if (!open) {
+              setSelectedMemberProfile(null);
+            }
+          }}
+        >
+          <DialogContent className="glass-card border-border/50 sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Member Profile</DialogTitle>
+              <DialogDescription>Detailed profile within your shared groups.</DialogDescription>
+            </DialogHeader>
+
+            {memberProfileLoading ? (
+              <p className="text-sm text-muted-foreground">Loading profile...</p>
+            ) : !selectedMemberProfile ? (
+              <p className="text-sm text-muted-foreground">Profile unavailable.</p>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  {selectedMemberProfile.avatar ? (
+                    <img
+                      src={selectedMemberProfile.avatar}
+                      alt={selectedMemberProfile.name}
+                      className="h-14 w-14 rounded-full object-cover border border-border/60"
+                    />
+                  ) : (
+                    <div className="h-14 w-14 rounded-full border border-border/60 bg-primary/10 text-primary font-bold flex items-center justify-center">
+                      {selectedMemberProfile.name
+                        .split(/\s+/)
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .map((part) => part[0]?.toUpperCase() || "")
+                        .join("") || "U"}
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-display font-bold text-lg text-foreground">{selectedMemberProfile.name}</p>
+                    <p className="text-sm text-muted-foreground">Level {selectedMemberProfile.level}</p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-border/50 p-3 bg-muted/20 space-y-2">
+                  <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted/60">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all"
+                      style={{ width: `${Math.max(0, Math.min(100, selectedMemberProfile.levelProgressPercent))}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>{selectedMemberProfile.levelStart} bets</span>
+                    <span>{selectedMemberProfile.nextLevelTarget} bets</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-lg border border-border/50 p-3 bg-muted/20">
+                    <p className="text-xs text-muted-foreground">Coins</p>
+                    <p className="text-base font-bold text-foreground">{selectedMemberProfile.coins.toLocaleString()}</p>
+                  </div>
+                  <div className="rounded-lg border border-border/50 p-3 bg-muted/20">
+                    <p className="text-xs text-muted-foreground">Groups</p>
+                    <p className="text-base font-bold text-foreground">{selectedMemberProfile.totalGroups}</p>
+                  </div>
+                  <div className="rounded-lg border border-border/50 p-3 bg-muted/20">
+                    <p className="text-xs text-muted-foreground">Total Bets</p>
+                    <p className="text-base font-bold text-foreground">{selectedMemberProfile.totalBets}</p>
+                  </div>
+                  <div className="rounded-lg border border-border/50 p-3 bg-muted/20">
+                    <p className="text-xs text-muted-foreground">To Next Level</p>
+                    <p className="text-base font-bold text-foreground">{selectedMemberProfile.betsToNextLevel}</p>
+                  </div>
+                </div>
+
+                {selectedMemberProfile.favoriteIplTeam ? (
+                  <div className="rounded-lg border border-border/50 p-3 bg-muted/20 flex items-center gap-2">
+                    {selectedMemberProfile.favoriteIplTeamLogo ? (
+                      <img
+                        src={selectedMemberProfile.favoriteIplTeamLogo}
+                        alt={selectedMemberProfile.favoriteIplTeam}
+                        className="h-5 w-5 object-contain"
+                      />
+                    ) : null}
+                    <p className="text-sm text-muted-foreground">
+                      Favorite IPL Team: <span className="text-foreground font-medium">{selectedMemberProfile.favoriteIplTeam}</span>
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </main>

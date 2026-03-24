@@ -1,7 +1,7 @@
 import { create } from "zustand";
-import type { Group, GroupSettlementSummary, LeaderboardEntry } from "@/lib/types";
+import type { Group, GroupSettlementSummary, LeaderboardEntry, PublicUserProfile } from "@/lib/types";
 import { api } from "@/lib/api";
-import { mapGroup, mapLeaderboard } from "@/lib/adapters";
+import { mapGroup, mapLeaderboard, mapPublicUserProfile } from "@/lib/adapters";
 import { useUserStore } from "@/store/userStore";
 
 interface GroupState {
@@ -12,6 +12,7 @@ interface GroupState {
   fetchGroupById: (groupId: string) => Promise<Group | null>;
   getLeaderboard: (groupId: string) => Promise<LeaderboardEntry[]>;
   getSettlementSummary: (groupId: string) => Promise<GroupSettlementSummary>;
+  getPublicUserProfile: (userId: string) => Promise<PublicUserProfile>;
   getGroup: (id: string) => Group | undefined;
 }
 
@@ -95,6 +96,10 @@ export const useGroupStore = create<GroupState>((set, get) => ({
           }))
         : [],
     };
+  },
+  getPublicUserProfile: async (userId) => {
+    const response = await api.get(`/users/${userId}/profile`);
+    return mapPublicUserProfile(response.data?.data || {});
   },
   getGroup: (id) => get().groups.find((g) => g.id === id),
 }));

@@ -6,9 +6,13 @@ import type {
   GroupMember,
   LeaderboardEntry,
   Match,
+  PublicUserProfile,
   Team,
   User,
 } from "@/lib/types";
+
+const getLevelFromBetCount = (count: number) =>
+  count < 1 ? 1 : count < 5 ? 2 : count < 10 ? 3 : Math.floor((count - 10) / 10) + 4;
 
 const shortName = (name: string) => {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -93,12 +97,32 @@ export const mapUser = (apiUser: any): User => {
 };
 
 export const mapGroupMember = (member: any): GroupMember => ({
+  const totalBets = Number(member.totalBets || 0);
+
   userId: member._id || member.userId,
   name: member.name,
   avatar: member.profileImageUrl || member.avatar || undefined,
   coins: Number(member.coins || 0),
+  level: Number(member.level || getLevelFromBetCount(totalBets)),
+  totalBets,
   wins: Number(member.wins || 0),
   losses: Number(member.losses || 0),
+});
+
+export const mapPublicUserProfile = (apiUser: any): PublicUserProfile => ({
+  id: apiUser._id,
+  name: apiUser.name,
+  avatar: apiUser.profileImageUrl || undefined,
+  favoriteIplTeam: apiUser.favoriteIplTeam || undefined,
+  favoriteIplTeamLogo: apiUser.favoriteIplTeamLogo || undefined,
+  coins: Number(apiUser.coins || 0),
+  totalGroups: Number(apiUser.totalGroups || 0),
+  totalBets: Number(apiUser.totalBets || 0),
+  level: Number(apiUser.level || 1),
+  levelStart: Number(apiUser.levelStart || 0),
+  nextLevelTarget: Number(apiUser.nextLevelTarget || 1),
+  betsToNextLevel: Number(apiUser.betsToNextLevel || 0),
+  levelProgressPercent: Number(apiUser.levelProgressPercent || 0),
 });
 
 export const mapGroup = (apiGroup: any): Group => ({
