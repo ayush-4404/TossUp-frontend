@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TossUp</string>
+    <string name="title_activity_main">TossUp</string>
+    <string name="package_name">com.tossup.app</string>
+    <string name="custom_url_scheme">com.tossup.app</string>
+</resources>
