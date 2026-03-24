@@ -59,6 +59,11 @@ const Signup = () => {
       return;
     }
 
+    if (!favoriteIplTeam) {
+      toast({ title: "Error", description: "Please select your favourite IPL team.", variant: "destructive" });
+      return;
+    }
+
     if (profileImage && !profileImage.type.startsWith("image/")) {
       toast({ title: "Error", description: "Profile picture must be an image file.", variant: "destructive" });
       return;
@@ -71,7 +76,7 @@ const Signup = () => {
 
     setLoading(true);
     const result = await signup(name, email, password, {
-      favoriteIplTeam: favoriteIplTeam || undefined,
+      favoriteIplTeam,
       profileImage,
     });
     setLoading(false);
@@ -147,7 +152,7 @@ const Signup = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Favourite IPL Team (Optional)</label>
+              <label className="text-sm font-medium text-foreground">Favourite IPL Team *</label>
               {loadingTeams ? (
                 <div className="text-xs text-muted-foreground">Loading teams...</div>
               ) : (
@@ -156,9 +161,7 @@ const Signup = () => {
                     <button
                       key={team.id}
                       type="button"
-                      onClick={() =>
-                        setFavoriteIplTeam((current) => (current === team.name ? "" : team.name))
-                      }
+                      onClick={() => setFavoriteIplTeam(team.name)}
                       className={`w-full flex items-center gap-3 rounded-md px-3 py-2 border transition-colors ${
                         favoriteIplTeam === team.name
                           ? "border-primary bg-primary/10"

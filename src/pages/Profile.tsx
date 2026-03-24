@@ -109,6 +109,15 @@ const Profile = () => {
       return;
     }
 
+    if (!favoriteIplTeam) {
+      toast({
+        title: "Favourite team required",
+        description: "Please select your favourite IPL team.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSavingName(true);
     const ok = await updateProfileName(trimmed, favoriteIplTeam);
     setSavingName(false);
@@ -288,7 +297,9 @@ const Profile = () => {
                     className="w-full h-10 rounded-md border border-border/50 bg-muted/40 px-3 text-sm text-foreground"
                     disabled={loadingTeams}
                   >
-                    <option value="">No favourite team</option>
+                    <option value="" disabled>
+                      Select your favourite IPL team
+                    </option>
                     {iplTeams.map((team) => (
                       <option key={team.id} value={team.name}>
                         {team.name}

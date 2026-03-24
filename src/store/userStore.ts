@@ -15,7 +15,7 @@ type TeamListResult = {
 };
 
 type SignupOptions = {
-  favoriteIplTeam?: string;
+  favoriteIplTeam: string;
   profileImage?: File | null;
 };
 
@@ -36,7 +36,7 @@ interface UserState {
   isAuthenticated: boolean;
   bootstrapSession: () => Promise<boolean>;
   login: (email: string, password: string) => Promise<AuthActionResult>;
-  signup: (name: string, email: string, password: string, options?: SignupOptions) => Promise<AuthActionResult>;
+  signup: (name: string, email: string, password: string, options: SignupOptions) => Promise<AuthActionResult>;
   getIplTeams: () => Promise<TeamListResult>;
   verifyEmail: (email: string, otp: string) => Promise<AuthActionResult>;
   resendVerificationEmail: (email: string) => Promise<boolean>;
@@ -44,7 +44,7 @@ interface UserState {
   resetPassword: (email: string, otp: string, newPassword: string) => Promise<AuthActionResult>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<AuthActionResult>;
   refreshProfile: () => Promise<boolean>;
-  updateProfileName: (name: string, favoriteIplTeam?: string) => Promise<boolean>;
+  updateProfileName: (name: string, favoriteIplTeam: string) => Promise<boolean>;
   updateProfileImage: (file: File) => Promise<boolean>;
   logout: () => void;
   updateCoins: (amount: number) => void;
@@ -120,16 +120,14 @@ export const useUserStore = create<UserState>((set) => ({
       };
     }
   },
-  signup: async (name: string, email: string, password: string, options?: SignupOptions) => {
+  signup: async (name: string, email: string, password: string, options: SignupOptions) => {
     try {
       const formData = new FormData();
       formData.append("name", name);
       formData.append("email", email);
       formData.append("password", password);
 
-      if (options?.favoriteIplTeam) {
-        formData.append("favoriteIplTeam", options.favoriteIplTeam);
-      }
+      formData.append("favoriteIplTeam", options.favoriteIplTeam);
 
       if (options?.profileImage) {
         formData.append("profileImage", options.profileImage);
