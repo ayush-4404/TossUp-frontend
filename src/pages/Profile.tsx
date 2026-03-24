@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Camera, Save } from "lucide-react";
+import { Camera, PencilLine, Save, X } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ const Profile = () => {
   const [iplTeams, setIplTeams] = useState<IplTeam[]>([]);
   const [loadingTeams, setLoadingTeams] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [savingName, setSavingName] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -127,6 +128,7 @@ const Profile = () => {
         title: "Profile updated",
         description: "Your name has been updated.",
       });
+      setIsEditingProfile(false);
       return;
     }
 
@@ -138,7 +140,23 @@ const Profile = () => {
   };
 
   const handleChooseImage = () => {
+    if (!isEditingProfile) {
+      return;
+    }
+
     fileInputRef.current?.click();
+  };
+
+  const handleStartEdit = () => {
+    setName(user?.name || "");
+    setFavoriteIplTeam(user?.favoriteIplTeam || "");
+    setIsEditingProfile(true);
+  };
+
+  const handleCancelEdit = () => {
+    setName(user?.name || "");
+    setFavoriteIplTeam(user?.favoriteIplTeam || "");
+    setIsEditingProfile(false);
   };
 
   const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -262,12 +280,14 @@ const Profile = () => {
                     type="button"
                     variant="outline"
                     onClick={handleChooseImage}
-                    disabled={uploadingImage}
+                    disabled={!isEditingProfile || uploadingImage}
                   >
                     <Camera className="h-4 w-4" />
                     {uploadingImage ? "Uploading..." : user?.avatar ? "Change Photo" : "Add Photo"}
                   </Button>
-                  <p className="text-xs text-muted-foreground">PNG, JPG, WEBP up to 5MB.</p>
+                  <p className="text-xs text-muted-foreground">
+                    {isEditingProfile ? "PNG, JPG, WEBP up to 5MB." : "Click Edit Profile to change your photo."}
+                  </p>
                 </div>
               </div>
 
@@ -280,6 +300,7 @@ const Profile = () => {
                     onChange={(event) => setName(event.target.value)}
                     placeholder="Enter your name"
                     className="bg-muted/40 border-border/50"
+                    disabled={!isEditingProfile}
                   />
                 </div>
 
@@ -295,7 +316,7 @@ const Profile = () => {
                     value={favoriteIplTeam}
                     onChange={(event) => setFavoriteIplTeam(event.target.value)}
                     className="w-full h-10 rounded-md border border-border/50 bg-muted/40 px-3 text-sm text-foreground"
-                    disabled={loadingTeams}
+                    disabled={loadingTeams || !isEditingProfile}
                   >
                     <option value="" disabled>
                       Select your favourite IPL team
@@ -356,10 +377,31 @@ const Profile = () => {
                   </div>
                 </div>
 
-                <Button type="submit" disabled={savingName} className="gradient-primary text-primary-foreground">
-                  <Save className="h-4 w-4" />
-                  {savingName ? "Saving..." : "Save Changes"}
-                </Button>
+                <div className="flex flex-wrap items-center gap-3">
+                  {isEditingProfile ? (
+                    <>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleCancelEdit}
+                        disabled={savingName}
+                      >
+                        <X className="h-4 w-4" />
+                        Cancel
+                      </Button>
+
+                      <Button type="submit" disabled={savingName} className="gradient-primary text-primary-foreground">
+                        <Save className="h-4 w-4" />
+                        {savingName ? "Saving..." : "Save Changes"}
+                      </Button>
+                    </>
+                  ) : (
+                    <Button type="button" onClick={handleStartEdit} className="gradient-primary text-primary-foreground">
+                      <PencilLine className="h-4 w-4" />
+                      Edit Profile
+                    </Button>
+                  )}
+                </div>
               </form>
 
               <section className="rounded-lg border border-border/50 p-4 bg-muted/20 space-y-4">
