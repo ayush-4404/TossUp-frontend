@@ -446,24 +446,18 @@ const GroupDetail = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {groupMatches.map((match) => (
-                <div key={match.id} className="space-y-2 w-full">
-                  <MatchCard
-                    match={match}
-                    groupId={group.id}
-                    className="w-full min-w-0 max-w-none md:w-auto md:min-w-[340px]"
-                  />
-                  <Button
-                    variant={selectedMatchId === match.id ? "default" : "outline"}
-                    className="w-full"
-                    onClick={() => {
-                      setSelectedMatchId(match.id);
-                      setSelectionClearedByUser(false);
-                      navigate(`/match/${match.id}?group=${group.id}`);
-                    }}
-                  >
-                    View Group Bets
-                  </Button>
-                </div>
+                <MatchCard
+                  key={match.id}
+                  match={match}
+                  groupId={group.id}
+                  className="w-full min-w-0 max-w-none md:w-auto md:min-w-[340px]"
+                  isViewGroupBetsActive={selectedMatchId === match.id}
+                  onViewGroupBets={() => {
+                    setSelectedMatchId(match.id);
+                    setSelectionClearedByUser(false);
+                    navigate(`/match/${match.id}?group=${group.id}`);
+                  }}
+                />
               ))}
             </div>
 

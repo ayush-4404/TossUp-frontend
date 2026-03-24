@@ -11,9 +11,18 @@ interface MatchCardProps {
   groupId?: string;
   className?: string;
   actionMode?: "bet" | "schedule";
+  onViewGroupBets?: () => void;
+  isViewGroupBetsActive?: boolean;
 }
 
-const MatchCard = ({ match, groupId, className, actionMode = "bet" }: MatchCardProps) => {
+const MatchCard = ({
+  match,
+  groupId,
+  className,
+  actionMode = "bet",
+  onViewGroupBets,
+  isViewGroupBetsActive = false,
+}: MatchCardProps) => {
   const navigate = useNavigate();
 
   const handleBet = () => {
@@ -58,13 +67,25 @@ const MatchCard = ({ match, groupId, className, actionMode = "bet" }: MatchCardP
       <div className="flex flex-col items-center gap-3">
         <CountdownTimer targetTime={match.startTime} />
         {actionMode === "bet" ? (
-          <Button
-            onClick={handleBet}
-            className="w-full gradient-primary text-primary-foreground font-display font-bold tracking-wide hover:opacity-90 transition-opacity"
-            size="sm"
-          >
-            Place Bet
-          </Button>
+          <div className="w-full space-y-2">
+            <Button
+              onClick={handleBet}
+              className="w-full gradient-primary text-primary-foreground font-display font-bold tracking-wide hover:opacity-90 transition-opacity"
+              size="sm"
+            >
+              Place Bet
+            </Button>
+            {onViewGroupBets ? (
+              <Button
+                variant={isViewGroupBetsActive ? "default" : "outline"}
+                className="w-full"
+                size="sm"
+                onClick={onViewGroupBets}
+              >
+                View Group Bets
+              </Button>
+            ) : null}
+          </div>
         ) : (
           <div className="w-full rounded-md border border-border/50 bg-muted/30 py-2 text-center text-xs font-semibold tracking-wide text-muted-foreground">
             Schedule Only
