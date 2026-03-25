@@ -149,6 +149,10 @@ export const mapMatch = (apiMatch: any): Match => ({
   winner: apiMatch.winner || undefined,
   isManual: Boolean(apiMatch.isManual),
   groupId: apiMatch.groupId || null,
+  manualBetAmount:
+    apiMatch.manualBetAmount === null || apiMatch.manualBetAmount === undefined
+      ? null
+      : Number(apiMatch.manualBetAmount),
 });
 
 export const mapLeaderboard = (rows: any[]): LeaderboardEntry[] => {

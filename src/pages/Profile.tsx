@@ -54,6 +54,8 @@ const Profile = () => {
     return letters || "U";
   }, [user?.name]);
 
+  const levelProgress = Math.max(0, Math.min(100, user?.levelProgressPercent || 0));
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -139,14 +141,39 @@ const Profile = () => {
           ) : (
             <div className="space-y-8">
               <div className="flex items-center gap-5">
-                <div className="relative h-28 w-28 rounded-full overflow-hidden border border-border/60 bg-muted/50 flex items-center justify-center">
-                  {user?.avatar ? (
-                    <img src={user.avatar} alt="Profile" className="h-full w-full object-cover" />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-primary/15 text-primary font-display text-2xl font-bold">
-                      {initials}
+                <div className="space-y-3">
+                  <div className="relative h-28 w-28 rounded-full overflow-hidden border border-border/60 bg-muted/50 flex items-center justify-center shadow-[0_0_0_4px_hsl(var(--background)/0.6)]">
+                    {user?.avatar ? (
+                      <img src={user.avatar} alt="Profile" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-primary/15 text-primary font-display text-2xl font-bold">
+                        {initials}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="w-full min-w-[260px] rounded-xl border border-primary/30 bg-gradient-to-r from-primary/20 via-primary/10 to-accent/20 p-3 backdrop-blur-sm">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Player Level</p>
+                      <span className="rounded-full border border-primary/30 bg-background/50 px-2 py-0.5 text-[11px] font-semibold text-foreground">
+                        Lv. {user?.level || 1}
+                      </span>
                     </div>
-                  )}
+
+                    <div className="space-y-1.5">
+                      <div className="h-2.5 w-full overflow-hidden rounded-full bg-background/60">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-primary via-accent to-secondary transition-all"
+                          style={{ width: `${levelProgress}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                        <span>{user?.levelStart || 0} bets</span>
+                        <span>{Math.round(levelProgress)}% progress</span>
+                        <span>{user?.nextLevelTarget || 1} bets</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -201,31 +228,6 @@ const Profile = () => {
                   <div className="rounded-lg border border-border/50 p-3 bg-muted/20">
                     <p className="text-xs text-muted-foreground">Total Bets</p>
                     <p className="text-xl font-bold text-foreground">{user?.totalBets || 0}</p>
-                  </div>
-                </div>
-
-                <div className="rounded-lg border border-border/50 p-4 bg-muted/20 space-y-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Player Level</p>
-                      <p className="text-xl font-bold text-foreground">Level {user?.level || 1}</p>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {user?.betsToNextLevel || 0} bet{(user?.betsToNextLevel || 0) === 1 ? "" : "s"} to next level
-                    </p>
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted/60">
-                      <div
-                        className="h-full rounded-full bg-primary transition-all"
-                        style={{ width: `${Math.max(0, Math.min(100, user?.levelProgressPercent || 0))}%` }}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                      <span>{user?.levelStart || 0} bets</span>
-                      <span>{user?.nextLevelTarget || 1} bets</span>
-                    </div>
                   </div>
                 </div>
 

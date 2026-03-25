@@ -39,6 +39,7 @@ const GroupDetail = () => {
     bets,
     loadMatches,
     createManualMatch,
+    updateManualMatchBetAmount,
     declareManualMatchResult,
     loadGroupBets,
     loadGroupMatchTransfers,
@@ -51,9 +52,11 @@ const GroupDetail = () => {
   const [addManualOpen, setAddManualOpen] = useState(false);
   const [declaringResult, setDeclaringResult] = useState(false);
   const [creatingManual, setCreatingManual] = useState(false);
+  const [updatingManualBetAmount, setUpdatingManualBetAmount] = useState(false);
   const [manualTeamA, setManualTeamA] = useState("");
   const [manualTeamB, setManualTeamB] = useState("");
   const [manualStartTime, setManualStartTime] = useState("");
+  const [manualBetAmountInput, setManualBetAmountInput] = useState("");
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [settlementSummary, setSettlementSummary] = useState<GroupSettlementSummary | null>(null);
   const [historyMatchId, setHistoryMatchId] = useState<string | null>(null);
@@ -195,6 +198,16 @@ const GroupDetail = () => {
     () => allGroupMatches.find((m) => m.id === selectedMatchId) || null,
     [allGroupMatches, selectedMatchId]
   );
+
+  useEffect(() => {
+    if (!selectedMatch || !selectedMatch.isManual || !group) {
+      setManualBetAmountInput("");
+      return;
+    }
+
+    const nextAmount = selectedMatch.manualBetAmount ?? group.betPrice;
+    setManualBetAmountInput(String(nextAmount));
+  }, [group, selectedMatch]);
 
   const historyMatch = useMemo(
     () => allGroupMatches.find((m) => m.id === historyMatchId) || null,
@@ -356,6 +369,32 @@ const GroupDetail = () => {
     }
   };
 
+  const handleUpdateManualBetAmount = async () => {
+    if (!id || !selectedMatch || !selectedMatch.isManual) {
+      return;
+    }
+
+    const parsed = Number(manualBetAmountInput);
+    if (!Number.isFinite(parsed) || parsed < 1) {
+      toast({ title: "Invalid amount", description: "Enter a bet amount of at least 1.", variant: "destructive" });
+      return;
+    }
+
+    setUpdatingManualBetAmount(true);
+    try {
+      const updated = await updateManualMatchBetAmount(id, selectedMatch.id, parsed);
+      if (!updated) {
+        throw new Error("Update failed");
+      }
+      await loadGroupMatchBets(id, selectedMatch.id);
+      toast({ title: "Bet amount updated", description: `Manual match bet amount set to ${parsed} coins.` });
+    } catch {
+      toast({ title: "Failed", description: "Could not update manual match bet amount.", variant: "destructive" });
+    } finally {
+      setUpdatingManualBetAmount(false);
+    }
+  };
+
   const netTransfers = useMemo(() => {
     if (!selectedMatchId) {
       return [];
@@ -512,6 +551,34 @@ const GroupDetail = () => {
               {isOwner && selectedMatch?.isManual && selectedMatch.status !== "completed" ? (
                 <div className="rounded-lg border border-border/50 p-3 bg-muted/20 space-y-2">
                   <p className="text-sm text-muted-foreground">Declare result for this manual match</p>
+                  <div className="rounded-md border border-border/50 p-3 bg-background/40 space-y-2">
+                    <p className="text-xs text-muted-foreground">Manual match bet amount (coins)</p>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Input
+                        type="number"
+                        min={1}
+                        step={1}
+                        value={manualBetAmountInput}
+                        onChange={(event) => setManualBetAmountInput(event.target.value)}
+                        className="sm:max-w-[180px]"
+                        placeholder="Enter amount"
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleUpdateManualBetAmount}
+                        disabled={
+                          updatingManualBetAmount ||
+                          new Date(selectedMatch.startTime).getTime() - 15 * 60 * 1000 <= Date.now()
+                        }
+                      >
+                        {updatingManualBetAmount ? "Updating..." : "Update Amount"}
+                      </Button>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Once updated, all existing open bets for this manual match use the new amount.
+                    </p>
+                  </div>
                   {new Date(selectedMatch.startTime).getTime() > Date.now() ? (
                     <p className="text-xs text-muted-foreground">
                       Result can be declared only after match start time.
@@ -954,33 +1021,42 @@ const GroupDetail = () => {
               <p className="text-sm text-muted-foreground">Profile unavailable.</p>
             ) : (
               <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  {selectedMemberProfile.avatar ? (
-                    <img
-                      src={selectedMemberProfile.avatar}
-                      alt={selectedMemberProfile.name}
-                      className="h-14 w-14 rounded-full object-cover border border-border/60"
-                    />
-                  ) : (
-                    <div className="h-14 w-14 rounded-full border border-border/60 bg-primary/10 text-primary font-bold flex items-center justify-center">
-                      {selectedMemberProfile.name
-                        .split(/\s+/)
-                        .filter(Boolean)
-                        .slice(0, 2)
-                        .map((part) => part[0]?.toUpperCase() || "")
-                        .join("") || "U"}
+                <div className="rounded-xl border border-primary/30 bg-gradient-to-r from-primary/20 via-primary/10 to-accent/20 p-4">
+                  <div className="flex items-center gap-3">
+                    {selectedMemberProfile.avatar ? (
+                      <img
+                        src={selectedMemberProfile.avatar}
+                        alt={selectedMemberProfile.name}
+                        className="h-16 w-16 rounded-full object-cover border border-border/60 shadow-[0_0_0_3px_hsl(var(--background)/0.5)]"
+                      />
+                    ) : (
+                      <div className="h-16 w-16 rounded-full border border-border/60 bg-primary/10 text-primary font-bold flex items-center justify-center">
+                        {selectedMemberProfile.name
+                          .split(/\s+/)
+                          .filter(Boolean)
+                          .slice(0, 2)
+                          .map((part) => part[0]?.toUpperCase() || "")
+                          .join("") || "U"}
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-display font-bold text-lg text-foreground">{selectedMemberProfile.name}</p>
+                      <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Member Snapshot</p>
                     </div>
-                  )}
-                  <div>
-                    <p className="font-display font-bold text-lg text-foreground">{selectedMemberProfile.name}</p>
-                    <p className="text-sm text-muted-foreground">Level {selectedMemberProfile.level}</p>
+                    <span className="ml-auto rounded-full border border-primary/30 bg-background/50 px-2.5 py-1 text-xs font-semibold text-foreground">
+                      Level {selectedMemberProfile.level}
+                    </span>
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-border/50 p-3 bg-muted/20 space-y-2">
-                  <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted/60">
+                <div className="rounded-lg border border-border/50 p-3 bg-muted/20 space-y-2.5">
+                  <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                    <span>Level Progress</span>
+                    <span>{Math.round(Math.max(0, Math.min(100, selectedMemberProfile.levelProgressPercent)))}%</span>
+                  </div>
+                  <div className="h-2.5 w-full overflow-hidden rounded-full bg-background/60">
                     <div
-                      className="h-full rounded-full bg-primary transition-all"
+                      className="h-full rounded-full bg-gradient-to-r from-primary via-accent to-secondary transition-all"
                       style={{ width: `${Math.max(0, Math.min(100, selectedMemberProfile.levelProgressPercent))}%` }}
                     />
                   </div>
@@ -1002,10 +1078,6 @@ const GroupDetail = () => {
                   <div className="rounded-lg border border-border/50 p-3 bg-muted/20">
                     <p className="text-xs text-muted-foreground">Total Bets</p>
                     <p className="text-base font-bold text-foreground">{selectedMemberProfile.totalBets}</p>
-                  </div>
-                  <div className="rounded-lg border border-border/50 p-3 bg-muted/20">
-                    <p className="text-xs text-muted-foreground">To Next Level</p>
-                    <p className="text-base font-bold text-foreground">{selectedMemberProfile.betsToNextLevel}</p>
                   </div>
                 </div>
 

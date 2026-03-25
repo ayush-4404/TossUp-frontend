@@ -43,6 +43,7 @@ export interface Match {
   winner?: string;
   isManual?: boolean;
   groupId?: string | null;
+  manualBetAmount?: number | null;
 }
 
 export interface Group {

@@ -11,6 +11,7 @@ interface MatchState {
   betHistory: BetHistoryEntry[];
   loadMatches: (options?: { includeManual?: boolean }) => Promise<void>;
   createManualMatch: (groupId: string, teamA: string, teamB: string, startTime: string) => Promise<Match | null>;
+  updateManualMatchBetAmount: (groupId: string, matchId: string, betAmount: number) => Promise<Match | null>;
   declareManualMatchResult: (groupId: string, matchId: string, winner: string) => Promise<Match | null>;
   loadGroupBets: (groupId: string) => Promise<void>;
   loadGroupMatchBets: (groupId: string, matchId: string) => Promise<Bet[]>;
@@ -59,6 +60,17 @@ export const useMatchStore = create<MatchState>((set, get) => ({
       ),
     }));
     return created;
+  },
+  updateManualMatchBetAmount: async (groupId, matchId, betAmount) => {
+    const response = await api.patch(`/matches/manual/${matchId}/bet-amount`, {
+      groupId,
+      betAmount,
+    });
+    const updated = mapMatch(response.data?.data);
+    set((state) => ({
+      matches: state.matches.map((match) => (match.id === updated.id ? updated : match)),
+    }));
+    return updated;
   },
   declareManualMatchResult: async (groupId, matchId, winner) => {
     const response = await api.patch(`/matches/manual/${matchId}/result`, {

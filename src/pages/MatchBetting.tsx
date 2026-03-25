@@ -26,6 +26,21 @@ const MatchBetting = () => {
   const [bettingClosed, setBettingClosed] = useState(false);
   const [remainingMinutes, setRemainingMinutes] = useState(0);
 
+  const remainingTimeLabel = useMemo(() => {
+    const mins = Math.max(0, remainingMinutes);
+    const days = Math.floor(mins / (24 * 60));
+    const hours = Math.floor((mins % (24 * 60)) / 60);
+    const minutes = mins % 60;
+
+    if (days > 0) {
+      return `${days}d ${hours}h ${minutes}m left`;
+    }
+    if (hours > 0) {
+      return `${hours}h ${minutes}m left`;
+    }
+    return `${minutes}m left`;
+  }, [remainingMinutes]);
+
   useEffect(() => {
     if (matches.length === 0) {
       loadMatches().catch(() => undefined);
@@ -37,7 +52,8 @@ const MatchBetting = () => {
 
   const match = matches.find((m) => m.id === id);
   const group = groups.find((g) => g.id === groupId);
-  const betAmount = group?.betPrice || 100;
+  const betAmount =
+    (match?.isManual ? match.manualBetAmount : null) ?? group?.betPrice ?? 100;
   const matchBets = useMemo(
     () => bets.filter((bet) => bet.groupId === groupId && bet.matchId === id),
     [bets, groupId, id]
@@ -78,6 +94,34 @@ const MatchBetting = () => {
   const totalVotes = matchBets.length;
   const teamAVotes = matchBets.filter((bet) => bet.teamId === match?.teamA.name).length;
   const teamBVotes = matchBets.filter((bet) => bet.teamId === match?.teamB.name).length;
+  const teamAVoters = useMemo(
+    () =>
+      matchBets
+        .filter((bet) => bet.teamId === match?.teamA.name)
+        .map((bet) => {
+          const member = group?.members.find((m) => m.userId === bet.userId);
+          return {
+            userId: bet.userId,
+            name: member?.name || bet.userName || "Unknown",
+            avatar: member?.avatar,
+          };
+        }),
+    [group?.members, match?.teamA.name, matchBets]
+  );
+  const teamBVoters = useMemo(
+    () =>
+      matchBets
+        .filter((bet) => bet.teamId === match?.teamB.name)
+        .map((bet) => {
+          const member = group?.members.find((m) => m.userId === bet.userId);
+          return {
+            userId: bet.userId,
+            name: member?.name || bet.userName || "Unknown",
+            avatar: member?.avatar,
+          };
+        }),
+    [group?.members, match?.teamB.name, matchBets]
+  );
 
   const handleConfirm = async () => {
     if (!selectedTeam || !match) return;
@@ -156,7 +200,7 @@ const MatchBetting = () => {
               </div>
               <div className="text-xs text-muted-foreground flex items-center gap-1">
                 <Clock3 className="h-3.5 w-3.5" />
-                {remainingMinutes} min left
+                {remainingTimeLabel}
               </div>
             </div>
 
@@ -164,6 +208,7 @@ const MatchBetting = () => {
               const votes = index === 0 ? teamAVotes : teamBVotes;
               const pct = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
               const isSelected = selectedTeam?.id === team.id;
+              const voters = index === 0 ? teamAVoters : teamBVoters;
 
               return (
                 <button
@@ -200,6 +245,37 @@ const MatchBetting = () => {
                       className={`h-full transition-all ${isSelected ? "bg-primary" : "bg-muted-foreground/40"}`}
                       style={{ width: `${pct}%` }}
                     />
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {voters.length === 0 ? (
+                      <span className="text-[11px] text-muted-foreground">No votes yet</span>
+                    ) : (
+                      voters.map((voter) => {
+                        const initials = voter.name
+                          .split(/\s+/)
+                          .filter(Boolean)
+                          .slice(0, 2)
+                          .map((part) => part[0]?.toUpperCase() || "")
+                          .join("") || "U";
+
+                        return (
+                          <span
+                            key={`${team.id}-${voter.userId}`}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/60 px-2.5 py-1 text-[11px] text-foreground"
+                          >
+                            {voter.avatar ? (
+                              <img src={voter.avatar} alt={voter.name} className="h-4 w-4 rounded-full object-cover" />
+                            ) : (
+                              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-[9px] font-semibold text-primary">
+                                {initials}
+                              </span>
+                            )}
+                            <span className="max-w-[120px] truncate">{voter.name}</span>
+                          </span>
+                        );
+                      })
+                    )}
                   </div>
                 </button>
               );
