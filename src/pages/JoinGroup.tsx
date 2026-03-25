@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Navbar from "@/components/Navbar";
 import { useGroupStore } from "@/store/groupStore";
+import { hideGlobalLoadingMessage, showGlobalLoadingMessage } from "@/store/loadingStore";
 import { toast } from "@/hooks/use-toast";
 
 const JoinGroup = () => {
@@ -19,14 +20,19 @@ const JoinGroup = () => {
       toast({ title: "Error", description: "Enter an invite code.", variant: "destructive" });
       return;
     }
+
+    const loaderMessageId = showGlobalLoadingMessage("Joining group...");
     setLoading(true);
     let group = null;
     try {
       group = await joinGroup(code.toUpperCase());
     } catch {
       group = null;
+    } finally {
+      setLoading(false);
+      hideGlobalLoadingMessage(loaderMessageId);
     }
-    setLoading(false);
+
     if (group) {
       toast({ title: "Joined!", description: `Welcome to ${group.name}` });
       navigate(`/groups/${group.id}`);

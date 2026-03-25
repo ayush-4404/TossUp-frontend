@@ -390,4 +390,20 @@
   .glow-secondary {
     box-shadow: 0 0 20px hsl(var(--secondary) / 0.32), 0 0 60px hsl(var(--secondary) / 0.12);
   }
+
+  .loading-indicator {
+    animation: loading-indicator-slide 1.1s ease-in-out infinite;
+  }
+
+  @keyframes loading-indicator-slide {
+    0% {
+      transform: translateX(-130%);
+    }
+    55% {
+      transform: translateX(120%);
+    }
+    100% {
+      transform: translateX(320%);
+    }
+  }
 }

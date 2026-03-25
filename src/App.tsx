@@ -1,10 +1,14 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { App as CapacitorApp } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core";
+import { Dialog } from "@capacitor/dialog";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useUserStore } from "@/store/userStore";
+import GlobalLoadingOverlay from "@/components/GlobalLoadingOverlay";
 import { applyThemeToDocument, getSavedThemeMode, resolveTheme } from "@/lib/theme";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -36,6 +40,62 @@ const ProtectedRoute = ({ isAuthenticated, children }: { isAuthenticated: boolea
   }
 
   return children;
+};
+
+const AndroidBackButtonHandler = () => {
+  const location = useLocation();
+  const pathnameRef = useRef(location.pathname);
+
+  useEffect(() => {
+    pathnameRef.current = location.pathname;
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "android") {
+      return;
+    }
+
+    let removed = false;
+    let removeListener: (() => Promise<void>) | null = null;
+
+    const registerBackHandler = async () => {
+      const listener = await CapacitorApp.addListener("backButton", async ({ canGoBack }) => {
+        if (canGoBack && window.history.length > 1) {
+          window.history.back();
+          return;
+        }
+
+        const shouldExit = await Dialog.confirm({
+          title: "Exit TossUp",
+          message: "Do you want to close the app?",
+          okButtonTitle: "Exit",
+          cancelButtonTitle: "Cancel",
+        });
+
+        if (shouldExit.value) {
+          await CapacitorApp.exitApp();
+        }
+      });
+
+      if (removed) {
+        await listener.remove();
+        return;
+      }
+
+      removeListener = () => listener.remove();
+    };
+
+    registerBackHandler();
+
+    return () => {
+      removed = true;
+      if (removeListener) {
+        void removeListener();
+      }
+    };
+  }, []);
+
+  return null;
 };
 
 const App = () => {
@@ -73,7 +133,9 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <GlobalLoadingOverlay />
         <BrowserRouter>
+          <AndroidBackButtonHandler />
           <Routes>
             <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
             <Route

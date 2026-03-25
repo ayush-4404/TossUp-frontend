@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Navbar from "@/components/Navbar";
 import { useGroupStore } from "@/store/groupStore";
+import { hideGlobalLoadingMessage, showGlobalLoadingMessage } from "@/store/loadingStore";
 import { toast } from "@/hooks/use-toast";
 
 const CreateGroup = () => {
@@ -21,12 +22,17 @@ const CreateGroup = () => {
       toast({ title: "Error", description: "Fill all fields.", variant: "destructive" });
       return;
     }
+
+    const loaderMessageId = showGlobalLoadingMessage("Creating group...");
     let group = null;
     try {
       group = await createGroup(name, parseInt(betPrice, 10));
     } catch {
       group = null;
+    } finally {
+      hideGlobalLoadingMessage(loaderMessageId);
     }
+
     if (!group) {
       toast({ title: "Error", description: "Unable to create group.", variant: "destructive" });
       return;

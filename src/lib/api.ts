@@ -1,4 +1,5 @@
 import axios from "axios";
+import { useLoadingStore } from "@/store/loadingStore";
 
 const AUTH_TOKEN_KEY = "criccoins_token";
 const USER_KEY = "criccoins_user";
@@ -46,6 +47,8 @@ export const setStoredUser = (user: unknown | null) => {
 };
 
 api.interceptors.request.use((config) => {
+  useLoadingStore.getState().startRequest();
+
   const token = getAuthToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -76,8 +79,13 @@ const requestSessionRefresh = async (): Promise<string | null> => {
 };
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    useLoadingStore.getState().finishRequest();
+    return response;
+  },
   async (error) => {
+    useLoadingStore.getState().finishRequest();
+
     const originalRequest = error.config as (typeof error.config & { _retry?: boolean }) | undefined;
     const status = error.response?.status;
     const requestUrl = originalRequest?.url || "";
