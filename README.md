@@ -1,73 +1,69 @@
-# Welcome to your Lovable project
+# TossUp
 
-## Project info
+TossUp is an IPL prediction and group-competition platform where users place virtual coin bets on match outcomes, compete with friends, and track performance through leaderboards and settlement views.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Live App
 
-## How can I edit this code?
+- Web (Vercel): https://tossup-lemon.vercel.app
+- Android APK (Drive): https://drive.google.com/file/d/1waiCmfcsmur58tuOHpsFchB9i4DyyZGs/view?usp=drive_link
 
-There are several ways of editing your application.
+## What This Project Is About
 
-**Use Lovable**
+TossUp focuses on social prediction gameplay around IPL matches.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- Users create an account and verify their email.
+- Users join or create groups with invite codes.
+- Every group has a per-match coin stake.
+- Members vote on match winners before cutoff time.
+- After results, winnings/losses are reflected through transfers and net settlement.
+- Group members can review bet history, member performance, and leaderboard movement.
 
-Changes made via Lovable will be committed automatically to this repo.
+The app is designed for both browser and Android usage, with a mobile-first interface and team-based theming.
 
-**Use your preferred IDE**
+## Product Workflow
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+1. Authentication
+- Sign up, verify email, log in.
+- Password reset flow is supported.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+2. Onboarding
+- User profile includes preferred IPL team.
+- Theme can follow team identity or basic mode.
 
-Follow these steps:
+3. Group Lifecycle
+- Create group with bet price.
+- Share invite code for friends to join.
+- Group owner can manage manual matches when needed.
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+4. Match and Betting Flow
+- Upcoming matches appear on dashboard and in groups.
+- Members place or update bets before betting closes.
+- Poll-style visibility shows how members are voting.
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+5. Result and Settlement Flow
+- After match completion, bet outcomes are finalized.
+- Coin transfer rows are generated.
+- Net payment instructions show who pays whom.
+- Settlement tab gives per-member incoming, outgoing, and net balances.
 
-# Step 3: Install the necessary dependencies.
-npm i
+6. Tracking and Competition
+- Bet history keeps an activity trail for every match.
+- Leaderboard ranks members by performance.
+- Member cards and profile dialogs provide quick group insights.
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+## Core Capabilities
 
-**Edit a file directly in GitHub**
+- Group-based IPL prediction battles
+- Virtual coin economy per group
+- Poll-style bet visualization
+- Match-level bet history and transfer tracing
+- Leaderboard and settlement analytics
+- Android app distribution through APK
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Frontend Stack
 
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- React 18 + TypeScript + Vite
+- Tailwind CSS + shadcn/ui
+- Zustand for client state
+- TanStack Query for async data flows
+- Capacitor for Android packaging
