@@ -441,6 +441,72 @@ const GroupDetail = () => {
     return Array.from(pairMap.values()).sort((a, b) => b.amount - a.amount);
   }, [historyMatchId, transfersByMatch]);
 
+  const historyRows = useMemo(() => {
+    if (!historyMatchId) {
+      return [];
+    }
+
+    return [...(betHistoryByMatch[historyMatchId] || [])].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }, [historyMatchId, betHistoryByMatch]);
+
+  const historyPoll = useMemo(() => {
+    if (!historyMatch) {
+      return [];
+    }
+
+    const normalizeTeamName = (value?: string | null) => (value || "").trim().toLowerCase();
+    const teamAName = historyMatch.teamA.name;
+    const teamBName = historyMatch.teamB.name;
+    const teamANormalized = normalizeTeamName(teamAName);
+    const teamBNormalized = normalizeTeamName(teamBName);
+
+    const latestPickByUser = new Map<string, BetHistoryEntry>();
+
+    for (const row of historyRows) {
+      const existing = latestPickByUser.get(row.userId);
+      if (!existing || new Date(row.createdAt).getTime() > new Date(existing.createdAt).getTime()) {
+        latestPickByUser.set(row.userId, row);
+      }
+    }
+
+    const teamAVoters: { userId: string; userName: string }[] = [];
+    const teamBVoters: { userId: string; userName: string }[] = [];
+
+    for (const row of latestPickByUser.values()) {
+      const picked = normalizeTeamName(row.newTeamSelected);
+      const voter = { userId: row.userId, userName: row.userName };
+
+      if (picked === teamANormalized) {
+        teamAVoters.push(voter);
+      } else if (picked === teamBNormalized) {
+        teamBVoters.push(voter);
+      }
+    }
+
+    const totalVotes = teamAVoters.length + teamBVoters.length;
+
+    return [
+      {
+        key: "team-a",
+        label: teamAName,
+        shortName: historyMatch.teamA.shortName,
+        votes: teamAVoters.length,
+        voters: teamAVoters,
+        pct: totalVotes > 0 ? Math.round((teamAVoters.length / totalVotes) * 100) : 0,
+      },
+      {
+        key: "team-b",
+        label: teamBName,
+        shortName: historyMatch.teamB.shortName,
+        votes: teamBVoters.length,
+        voters: teamBVoters,
+        pct: totalVotes > 0 ? Math.round((teamBVoters.length / totalVotes) * 100) : 0,
+      },
+    ];
+  }, [historyMatch, historyRows]);
+
   const mySettlement = useMemo(() => {
     if (!user || !settlementSummary) {
       return null;
@@ -763,35 +829,87 @@ const GroupDetail = () => {
               )}
             </div>
 
-            <div className="glass-card rounded-xl overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-border/50 hover:bg-transparent">
-                    <TableHead>Time</TableHead>
-                    <TableHead>Member</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead>Previous Pick</TableHead>
-                    <TableHead>New Pick</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(historyMatchId ? betHistoryByMatch[historyMatchId] || [] : []).map((row, index) => (
-                    <TableRow key={row.id || `${row.userId}-${row.createdAt}-${index}`} className="border-border/30 hover:bg-muted/30">
-                      <TableCell>{new Date(row.createdAt).toLocaleString()}</TableCell>
-                      <TableCell>{row.userName}</TableCell>
-                      <TableCell className="capitalize">{row.action}</TableCell>
-                      <TableCell>{row.previousTeamSelected || "-"}</TableCell>
-                      <TableCell>{row.newTeamSelected}</TableCell>
-                      <TableCell className="text-right">{row.amount}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="glass-card rounded-xl p-4 space-y-4">
+              <h4 className="font-display font-bold text-base text-foreground">Poll Snapshot</h4>
 
-              {historyMatchId && (betHistoryByMatch[historyMatchId] || []).length === 0 ? (
-                <p className="text-sm text-muted-foreground p-4">No bet history yet for this match.</p>
-              ) : null}
+              {!historyMatchId || !historyMatch ? (
+                <p className="text-sm text-muted-foreground">Select a match to view poll history.</p>
+              ) : historyRows.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No bet history yet for this match.</p>
+              ) : (
+                <>
+                  <div className="space-y-3">
+                    {historyPoll.map((option) => (
+                      <div key={option.key} className="rounded-xl border border-border/60 bg-background/60 p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-foreground truncate">{option.label}</p>
+                            <p className="text-xs text-muted-foreground">{option.votes} vote{option.votes === 1 ? "" : "s"}</p>
+                          </div>
+                          <span className="text-sm font-bold text-foreground">{option.pct}%</span>
+                        </div>
+
+                        <div className="mt-2 h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
+                          <div className="h-full bg-primary transition-all" style={{ width: `${option.pct}%` }} />
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {option.voters.length === 0 ? (
+                            <span className="text-[11px] text-muted-foreground">No votes yet</span>
+                          ) : (
+                            option.voters.map((voter) => {
+                              const initials = voter.userName
+                                .split(/\s+/)
+                                .filter(Boolean)
+                                .slice(0, 2)
+                                .map((part) => part[0]?.toUpperCase() || "")
+                                .join("") || "U";
+
+                              return (
+                                <span
+                                  key={`${option.key}-${voter.userId}`}
+                                  className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/60 px-2.5 py-1 text-[11px] text-foreground"
+                                >
+                                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-[9px] font-semibold text-primary">
+                                    {initials}
+                                  </span>
+                                  <span className="max-w-[120px] truncate">{voter.userName}</span>
+                                </span>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="space-y-2">
+                    <h5 className="font-display font-bold text-sm text-foreground">Bet Activity</h5>
+                    <div className="space-y-2">
+                      {historyRows.map((row, index) => (
+                        <div
+                          key={row.id || `${row.userId}-${row.createdAt}-${index}`}
+                          className="rounded-lg border border-border/50 bg-muted/20 p-3"
+                        >
+                          <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                            <p className="text-sm font-medium text-foreground">{row.userName}</p>
+                            <p className="text-[11px] text-muted-foreground">{new Date(row.createdAt).toLocaleString()}</p>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1 capitalize">
+                            {row.action} pick: <span className="text-foreground">{row.newTeamSelected}</span>
+                            {row.previousTeamSelected ? (
+                              <>
+                                {" "}(was <span className="text-foreground">{row.previousTeamSelected}</span>)
+                              </>
+                            ) : null}
+                          </p>
+                          <p className="text-xs text-secondary mt-1">Stake: {row.amount} coins</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </TabsContent>
 
@@ -877,15 +995,7 @@ const GroupDetail = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="rounded-lg border border-border/50 p-3 bg-muted/20">
-                <p className="text-xs text-muted-foreground">Group Total Incoming</p>
-                <p className="text-xl font-bold text-foreground">{settlementSummary?.totals.totalIncoming ?? 0}</p>
-              </div>
-              <div className="rounded-lg border border-border/50 p-3 bg-muted/20">
-                <p className="text-xs text-muted-foreground">Group Total Outgoing</p>
-                <p className="text-xl font-bold text-foreground">{settlementSummary?.totals.totalOutgoing ?? 0}</p>
-              </div>
+            <div className="grid grid-cols-1 gap-3">
               <div className="rounded-lg border border-border/50 p-3 bg-muted/20">
                 <p className="text-xs text-muted-foreground">Transfer Rows</p>
                 <p className="text-xl font-bold text-foreground">{settlementSummary?.totals.transferCount ?? 0}</p>

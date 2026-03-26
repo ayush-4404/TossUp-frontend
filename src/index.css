@@ -6,6 +6,9 @@
 
 @layer base {
   :root {
+    --safe-area-top: env(safe-area-inset-top, 0px);
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+
     --background: 217 72% 14% / 0.44;
     --background-overlay: 217 72% 14% / 0.44;
     --foreground: 48 100% 96%;
@@ -356,6 +359,8 @@
     background-repeat: no-repeat;
     background-attachment: fixed;
     min-height: 100vh;
+    padding-top: var(--safe-area-top);
+    padding-bottom: var(--safe-area-bottom);
   }
 
   h1, h2, h3, h4, h5, h6 {

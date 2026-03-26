@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { App as CapacitorApp } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
 import { Dialog } from "@capacitor/dialog";
+import { StatusBar, Style } from "@capacitor/status-bar";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -109,6 +110,23 @@ const App = () => {
       setIsBootstrapping(false);
     });
   }, [bootstrapSession]);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) {
+      return;
+    }
+
+    const configureStatusBar = async () => {
+      try {
+        await StatusBar.setOverlaysWebView({ overlay: false });
+        await StatusBar.setStyle({ style: Style.Dark });
+      } catch {
+        // Ignore plugin errors to avoid blocking app boot.
+      }
+    };
+
+    void configureStatusBar();
+  }, []);
 
   useEffect(() => {
     if (isBootstrapping) {
