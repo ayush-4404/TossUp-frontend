@@ -98,6 +98,8 @@ export const mapUser = (apiUser: any): User => {
 
 export const mapGroupMember = (member: any): GroupMember => {
   const totalBets = Number(member.totalBets || 0);
+  const wins = Number(member.wins ?? member.winCount ?? 0);
+  const losses = Number(member.losses ?? member.lossCount ?? 0);
 
   return {
     userId: member._id || member.userId,
@@ -106,8 +108,8 @@ export const mapGroupMember = (member: any): GroupMember => {
     coins: Number(member.coins || 0),
     level: Number(member.level || getLevelFromBetCount(totalBets)),
     totalBets,
-    wins: Number(member.wins || 0),
-    losses: Number(member.losses || 0),
+    wins,
+    losses,
   };
 };
 
@@ -158,13 +160,13 @@ export const mapMatch = (apiMatch: any): Match => ({
 export const mapLeaderboard = (rows: any[]): LeaderboardEntry[] => {
   return rows.map((row, index) => ({
     rank: index + 1,
-    userId: row.userId,
+    userId: row.userId?._id || row.userId,
     name: row.name,
-    avatar: row.avatar,
+    avatar: row.avatar || row.profileImageUrl || undefined,
     coins: Number(row.coins || 0),
     netCoins: Number(row.netCoins || 0),
-    wins: Number(row.wins || 0),
-    losses: Number(row.losses || 0),
+    wins: Number(row.wins ?? row.winCount ?? 0),
+    losses: Number(row.losses ?? row.lossCount ?? 0),
   }));
 };
 

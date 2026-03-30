@@ -922,6 +922,7 @@ const GroupDetail = () => {
                     <TableHead className="text-right text-muted-foreground">Level</TableHead>
                     <TableHead className="text-right text-muted-foreground">Coins</TableHead>
                     <TableHead className="text-right text-muted-foreground">Wins</TableHead>
+                    <TableHead className="text-right text-muted-foreground">Losses</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -958,6 +959,7 @@ const GroupDetail = () => {
                       <TableCell className="text-right text-foreground font-semibold">L{m.level}</TableCell>
                       <TableCell className="text-right text-secondary font-bold">{m.coins.toLocaleString()}</TableCell>
                       <TableCell className="text-right text-success font-medium">{m.wins}</TableCell>
+                      <TableCell className="text-right text-destructive font-medium">{m.losses}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
