@@ -72,8 +72,8 @@ const GroupDetail = () => {
     if (groups.length === 0) {
       loadGroups().catch(() => undefined);
     }
-    if (matches.length === 0) {
-      loadMatches().catch(() => undefined);
+    if (matches.length === 0 || !matches.some((match) => match.status === "completed")) {
+      loadMatches({ includeCompleted: true }).catch(() => undefined);
     }
   }, [groups.length, matches.length, loadGroups, loadMatches]);
 
@@ -194,6 +194,11 @@ const GroupDetail = () => {
     const idsWithBets = new Set(groupBets.map((bet) => bet.matchId));
     return allGroupMatches.filter((match) => idsWithBets.has(match.id));
   }, [allGroupMatches, groupBets]);
+
+  const completedMatches = useMemo(
+    () => allGroupMatches.filter((match) => match.status === "completed"),
+    [allGroupMatches]
+  );
 
   const selectedMatch = useMemo(
     () => allGroupMatches.find((m) => m.id === selectedMatchId) || null,
@@ -451,6 +456,16 @@ const GroupDetail = () => {
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   }, [historyMatchId, betHistoryByMatch]);
+
+  const historyMatchBets = useMemo(() => {
+    if (!historyMatchId) {
+      return [];
+    }
+
+    return [...bets.filter((bet) => bet.matchId === historyMatchId)].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }, [historyMatchId, bets]);
 
   const historyPoll = useMemo(() => {
     if (!historyMatch) {
@@ -772,8 +787,11 @@ const GroupDetail = () => {
           </TabsContent>
 
           <TabsContent value="bet-history" className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              {(betHistoryMatches.length > 0 ? betHistoryMatches : allGroupMatches).map((match) => (
+            {completedMatches.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No completed matches available yet.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {completedMatches.map((match) => (
                 <Button
                   key={`history-${match.id}`}
                   size="sm"
@@ -786,7 +804,39 @@ const GroupDetail = () => {
                 >
                   {match.teamA.shortName} vs {match.teamB.shortName}
                 </Button>
-              ))}
+                ))}
+              </div>
+            )}
+
+            <div className="glass-card rounded-xl p-4 space-y-2">
+              <h4 className="font-display font-bold text-base text-foreground">Bets for Selected Completed Match</h4>
+
+              {!historyMatchId ? (
+                <p className="text-sm text-muted-foreground">Select a completed match to view bets.</p>
+              ) : historyMatchBets.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No bets found for this completed match.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border/50 hover:bg-transparent">
+                      <TableHead>Member</TableHead>
+                      <TableHead>Team Picked</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead className="text-right">Placed At</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {historyMatchBets.map((bet, index) => (
+                      <TableRow key={bet.id || `${bet.userId}-${bet.matchId}-${index}`} className="border-border/30 hover:bg-muted/30">
+                        <TableCell>{bet.userName || bet.userId}</TableCell>
+                        <TableCell>{bet.teamId}</TableCell>
+                        <TableCell className="text-right">{bet.amount}</TableCell>
+                        <TableCell className="text-right">{new Date(bet.createdAt).toLocaleString()}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </div>
 
             <div className="glass-card rounded-xl p-4 space-y-2">

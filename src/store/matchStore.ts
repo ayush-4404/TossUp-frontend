@@ -9,7 +9,7 @@ interface MatchState {
   bets: Bet[];
   transfers: CoinTransfer[];
   betHistory: BetHistoryEntry[];
-  loadMatches: (options?: { includeManual?: boolean }) => Promise<void>;
+  loadMatches: (options?: { includeManual?: boolean; includeCompleted?: boolean }) => Promise<void>;
   createManualMatch: (groupId: string, teamA: string, teamB: string, startTime: string) => Promise<Match | null>;
   updateManualMatchBetAmount: (groupId: string, matchId: string, betAmount: number) => Promise<Match | null>;
   declareManualMatchResult: (groupId: string, matchId: string, winner: string) => Promise<Match | null>;
@@ -41,6 +41,7 @@ export const useMatchStore = create<MatchState>((set, get) => ({
     const response = await api.get("/matches/upcoming", {
       params: {
         includeManual: options?.includeManual ?? true,
+        includeCompleted: options?.includeCompleted ?? false,
       },
     });
     const rows = response.data?.data || [];

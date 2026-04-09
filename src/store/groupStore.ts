@@ -12,6 +12,13 @@ interface GroupState {
   fetchGroupById: (groupId: string) => Promise<Group | null>;
   getLeaderboard: (groupId: string) => Promise<LeaderboardEntry[]>;
   getSettlementSummary: (groupId: string) => Promise<GroupSettlementSummary>;
+  syncGroupAndSettle: (groupId: string) => Promise<{
+    groupId: string;
+    syncedUpcomingMatches: number;
+    refreshedResultCandidates: number;
+    refreshedResultMatches: number;
+    settledGroupSummaries: number;
+  }>;
   getPublicUserProfile: (userId: string) => Promise<PublicUserProfile>;
   getGroup: (id: string) => Group | undefined;
 }
@@ -95,6 +102,18 @@ export const useGroupStore = create<GroupState>((set, get) => ({
             amount: Number(row.amount || 0),
           }))
         : [],
+    };
+  },
+  syncGroupAndSettle: async (groupId) => {
+    const response = await api.post(`/groups/${groupId}/sync-settlement`);
+    const payload = response.data?.data || {};
+
+    return {
+      groupId: payload.groupId || groupId,
+      syncedUpcomingMatches: Number(payload.syncedUpcomingMatches || 0),
+      refreshedResultCandidates: Number(payload.refreshedResultCandidates || 0),
+      refreshedResultMatches: Number(payload.refreshedResultMatches || 0),
+      settledGroupSummaries: Number(payload.settledGroupSummaries || 0),
     };
   },
   getPublicUserProfile: async (userId) => {
