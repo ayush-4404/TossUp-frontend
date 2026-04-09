@@ -42,6 +42,7 @@ const GroupDetail = () => {
     updateManualMatchBetAmount,
     declareManualMatchResult,
     loadGroupBets,
+    loadGroupMatchBets,
     loadGroupMatchTransfers,
     loadGroupMatchBetHistory,
   } = useMatchStore();
