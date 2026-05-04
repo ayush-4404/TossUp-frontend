@@ -94,6 +94,50 @@ export interface Bet {
   createdAt: string;
 }
 
+export interface CustomBetAnswer {
+  id: string;
+  customBetId: string;
+  groupId: string;
+  userId: string;
+  userName: string;
+  optionSelected: string;
+  amount: number;
+  settled: boolean;
+  isWinner: boolean | null;
+  payout: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CustomBetTransfer {
+  id: string;
+  groupId: string;
+  customBetId: string;
+  fromUserId: string;
+  fromUserName: string;
+  toUserId: string;
+  toUserName: string;
+  amount: number;
+  createdAt: string;
+}
+
+export interface CustomBet {
+  id: string;
+  groupId: string;
+  createdBy: string;
+  createdByName: string;
+  question: string;
+  options: string[];
+  betAmount: number;
+  status: "open" | "settled";
+  correctOption?: string;
+  settledAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  answers: CustomBetAnswer[];
+  transfers: CustomBetTransfer[];
+}
+
 export interface CoinTransfer {
   id: string;
   groupId: string;

@@ -2,6 +2,9 @@ import type {
   Bet,
   BetHistoryEntry,
   CoinTransfer,
+  CustomBet,
+  CustomBetAnswer,
+  CustomBetTransfer,
   Group,
   GroupMember,
   LeaderboardEntry,
@@ -210,4 +213,50 @@ export const mapBetHistoryEntry = (apiRow: any): BetHistoryEntry => ({
   newTeamSelected: apiRow.newTeamSelected,
   amount: Number(apiRow.amount || 0),
   createdAt: apiRow.createdAt,
+});
+
+export const mapCustomBetAnswer = (apiRow: any): CustomBetAnswer => ({
+  id: apiRow._id,
+  customBetId:
+    typeof apiRow.customBetId === "string" ? apiRow.customBetId : apiRow.customBetId?._id,
+  groupId: typeof apiRow.groupId === "string" ? apiRow.groupId : apiRow.groupId?._id,
+  userId: typeof apiRow.userId === "string" ? apiRow.userId : apiRow.userId?._id,
+  userName: typeof apiRow.userId === "string" ? "Unknown" : apiRow.userId?.name || "Unknown",
+  optionSelected: apiRow.optionSelected,
+  amount: Number(apiRow.amount || 0),
+  settled: Boolean(apiRow.settled),
+  isWinner: apiRow.isWinner === null || apiRow.isWinner === undefined ? null : Boolean(apiRow.isWinner),
+  payout: Number(apiRow.payout || 0),
+  createdAt: apiRow.createdAt,
+  updatedAt: apiRow.updatedAt,
+});
+
+export const mapCustomBetTransfer = (apiRow: any): CustomBetTransfer => ({
+  id: apiRow._id,
+  groupId: typeof apiRow.groupId === "string" ? apiRow.groupId : apiRow.groupId?._id,
+  customBetId:
+    typeof apiRow.customBetId === "string" ? apiRow.customBetId : apiRow.customBetId?._id,
+  fromUserId: typeof apiRow.fromUserId === "string" ? apiRow.fromUserId : apiRow.fromUserId?._id,
+  fromUserName: typeof apiRow.fromUserId === "string" ? "Unknown" : apiRow.fromUserId?.name || "Unknown",
+  toUserId: typeof apiRow.toUserId === "string" ? apiRow.toUserId : apiRow.toUserId?._id,
+  toUserName: typeof apiRow.toUserId === "string" ? "Unknown" : apiRow.toUserId?.name || "Unknown",
+  amount: Number(apiRow.amount || 0),
+  createdAt: apiRow.createdAt,
+});
+
+export const mapCustomBet = (apiBet: any): CustomBet => ({
+  id: apiBet._id,
+  groupId: typeof apiBet.groupId === "string" ? apiBet.groupId : apiBet.groupId?._id,
+  createdBy: typeof apiBet.createdBy === "string" ? apiBet.createdBy : apiBet.createdBy?._id,
+  createdByName: typeof apiBet.createdBy === "string" ? "Unknown" : apiBet.createdBy?.name || "Unknown",
+  question: apiBet.question,
+  options: Array.isArray(apiBet.options) ? apiBet.options : [],
+  betAmount: Number(apiBet.betAmount || 0),
+  status: apiBet.status,
+  correctOption: apiBet.correctOption || undefined,
+  settledAt: apiBet.settledAt || undefined,
+  createdAt: apiBet.createdAt,
+  updatedAt: apiBet.updatedAt,
+  answers: Array.isArray(apiBet.answers) ? apiBet.answers.map(mapCustomBetAnswer) : [],
+  transfers: Array.isArray(apiBet.transfers) ? apiBet.transfers.map(mapCustomBetTransfer) : [],
 });

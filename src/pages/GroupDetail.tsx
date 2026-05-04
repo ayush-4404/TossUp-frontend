@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Copy, IndianRupee, Users, PlusCircle, Flag } from "lucide-react";
+import { Copy, IndianRupee, Users, PlusCircle, Flag, CheckCircle2, CircleDot } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import { toast } from "@/hooks/use-toast";
 import type {
   BetHistoryEntry,
   CoinTransfer,
+  CustomBet,
   GroupSettlementSummary,
   LeaderboardEntry,
   PublicUserProfile,
@@ -32,8 +33,19 @@ import type {
 const GroupDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { groups, loadGroups, fetchGroupById, getLeaderboard, getSettlementSummary, getPublicUserProfile } =
-    useGroupStore();
+  const {
+    groups,
+    customBetsByGroup,
+    loadGroups,
+    fetchGroupById,
+    loadCustomBets,
+    createCustomBet,
+    placeCustomBetAnswer,
+    settleCustomBet,
+    getLeaderboard,
+    getSettlementSummary,
+    getPublicUserProfile,
+  } = useGroupStore();
   const {
     matches,
     bets,
@@ -51,13 +63,22 @@ const GroupDetail = () => {
   const [transfersByMatch, setTransfersByMatch] = useState<Record<string, CoinTransfer[]>>({});
   const [betHistoryByMatch, setBetHistoryByMatch] = useState<Record<string, BetHistoryEntry[]>>({});
   const [addManualOpen, setAddManualOpen] = useState(false);
+  const [addCustomBetOpen, setAddCustomBetOpen] = useState(false);
   const [declaringResult, setDeclaringResult] = useState(false);
   const [creatingManual, setCreatingManual] = useState(false);
+  const [creatingCustomBet, setCreatingCustomBet] = useState(false);
   const [updatingManualBetAmount, setUpdatingManualBetAmount] = useState(false);
+  const [submittingCustomAnswerByBet, setSubmittingCustomAnswerByBet] = useState<Record<string, boolean>>({});
+  const [settlingCustomBetById, setSettlingCustomBetById] = useState<Record<string, boolean>>({});
   const [manualTeamA, setManualTeamA] = useState("");
   const [manualTeamB, setManualTeamB] = useState("");
   const [manualStartTime, setManualStartTime] = useState("");
   const [manualBetAmountInput, setManualBetAmountInput] = useState("");
+  const [customQuestion, setCustomQuestion] = useState("");
+  const [customOptionsInput, setCustomOptionsInput] = useState("");
+  const [customBetAmountInput, setCustomBetAmountInput] = useState("");
+  const [selectedCustomOptionByBet, setSelectedCustomOptionByBet] = useState<Record<string, string>>({});
+  const [selectedSolveOptionByBet, setSelectedSolveOptionByBet] = useState<Record<string, string>>({});
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [settlementSummary, setSettlementSummary] = useState<GroupSettlementSummary | null>(null);
   const [historyMatchId, setHistoryMatchId] = useState<string | null>(null);
@@ -129,8 +150,9 @@ const GroupDetail = () => {
   useEffect(() => {
     if (id) {
       loadGroupBets(id).catch(() => undefined);
+      loadCustomBets(id).catch(() => undefined);
     }
-  }, [id, loadGroupBets]);
+  }, [id, loadCustomBets, loadGroupBets]);
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
@@ -170,6 +192,12 @@ const GroupDetail = () => {
 
   const group = groups.find((g) => g.id === id);
   const isOwner = Boolean(group && user && group.createdBy === user.id);
+  const customBets: CustomBet[] = useMemo(() => {
+    if (!id) {
+      return [];
+    }
+    return customBetsByGroup[id] || [];
+  }, [customBetsByGroup, id]);
 
   const allGroupMatches = useMemo(
     () =>
@@ -401,6 +429,98 @@ const GroupDetail = () => {
     }
   };
 
+  const handleCreateCustomBet = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!id) {
+      return;
+    }
+
+    const parsedAmount = Number(customBetAmountInput);
+    const parsedOptions = customOptionsInput
+      .split("\n")
+      .map((row) => row.trim())
+      .filter(Boolean);
+
+    if (!customQuestion.trim() || parsedOptions.length < 2 || !Number.isFinite(parsedAmount) || parsedAmount < 1) {
+      toast({
+        title: "Invalid custom bet",
+        description: "Add a question, at least two options, and a valid amount.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCreatingCustomBet(true);
+    try {
+      const created = await createCustomBet(id, customQuestion.trim(), parsedOptions, parsedAmount);
+      if (!created) {
+        throw new Error("Create custom bet failed");
+      }
+
+      setAddCustomBetOpen(false);
+      setCustomQuestion("");
+      setCustomOptionsInput("");
+      setCustomBetAmountInput("");
+      toast({ title: "Custom bet created", description: "Members can now place their picks." });
+    } catch {
+      toast({ title: "Failed", description: "Could not create custom bet.", variant: "destructive" });
+    } finally {
+      setCreatingCustomBet(false);
+    }
+  };
+
+  const handleSubmitCustomAnswer = async (customBet: CustomBet) => {
+    if (!id) {
+      return;
+    }
+
+    const selectedOption = selectedCustomOptionByBet[customBet.id];
+    if (!selectedOption) {
+      toast({
+        title: "Pick required",
+        description: "Select one option first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSubmittingCustomAnswerByBet((prev) => ({ ...prev, [customBet.id]: true }));
+    try {
+      await placeCustomBetAnswer(id, customBet.id, selectedOption);
+      toast({ title: "Pick saved", description: "Your custom bet response has been updated." });
+    } catch {
+      toast({ title: "Failed", description: "Could not save your pick.", variant: "destructive" });
+    } finally {
+      setSubmittingCustomAnswerByBet((prev) => ({ ...prev, [customBet.id]: false }));
+    }
+  };
+
+  const handleSettleCustomBet = async (customBet: CustomBet) => {
+    if (!id) {
+      return;
+    }
+
+    const selectedOption = selectedSolveOptionByBet[customBet.id];
+    if (!selectedOption) {
+      toast({
+        title: "Solution required",
+        description: "Choose the correct option to settle.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSettlingCustomBetById((prev) => ({ ...prev, [customBet.id]: true }));
+    try {
+      await settleCustomBet(id, customBet.id, selectedOption);
+      toast({ title: "Custom bet settled", description: "Solution declared and coins settled." });
+    } catch {
+      toast({ title: "Failed", description: "Could not settle custom bet.", variant: "destructive" });
+    } finally {
+      setSettlingCustomBetById((prev) => ({ ...prev, [customBet.id]: false }));
+    }
+  };
+
   const netTransfers = useMemo(() => {
     if (!selectedMatchId) {
       return [];
@@ -577,6 +697,7 @@ const GroupDetail = () => {
           <div className="overflow-x-auto pb-1">
             <TabsList className="bg-muted/50 border border-border/50 w-max min-w-full">
               <TabsTrigger value="matches" className="font-display font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Matches</TabsTrigger>
+              <TabsTrigger value="custom-bets" className="font-display font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Custom Bets</TabsTrigger>
               <TabsTrigger value="bet-history" className="font-display font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Bet History</TabsTrigger>
               <TabsTrigger value="members" className="font-display font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Members</TabsTrigger>
               <TabsTrigger value="leaderboard" className="font-display font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Leaderboard</TabsTrigger>
@@ -784,6 +905,185 @@ const GroupDetail = () => {
                 <p className="text-sm text-muted-foreground">No matches available to inspect bets.</p>
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="custom-bets" className="space-y-4">
+            {isOwner ? (
+              <div className="flex justify-stretch sm:justify-end">
+                <Button onClick={() => setAddCustomBetOpen(true)} className="gap-2 w-full sm:w-auto">
+                  <PlusCircle className="h-4 w-4" />
+                  Add Custom Bet
+                </Button>
+              </div>
+            ) : null}
+
+            {customBets.length === 0 ? (
+              <div className="glass-card rounded-xl p-4">
+                <p className="text-sm text-muted-foreground">No custom bets in this group yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {customBets.map((customBet) => {
+                  const myAnswer = user
+                    ? customBet.answers.find((row) => row.userId === user.id) || null
+                    : null;
+                  const totalVotes = customBet.answers.length;
+
+                  return (
+                    <div key={customBet.id} className="glass-card rounded-xl p-4 space-y-4">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="space-y-1">
+                          <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                            Custom Bet
+                          </p>
+                          <h3 className="font-display font-bold text-lg text-foreground">{customBet.question}</h3>
+                          <p className="text-xs text-muted-foreground">
+                            Stake: {customBet.betAmount} coins · Created by {customBet.createdByName}
+                          </p>
+                        </div>
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold border ${
+                            customBet.status === "settled"
+                              ? "border-success/40 text-success bg-success/10"
+                              : "border-border/60 text-foreground bg-background/50"
+                          }`}
+                        >
+                          {customBet.status === "settled" ? (
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                          ) : (
+                            <CircleDot className="h-3.5 w-3.5" />
+                          )}
+                          {customBet.status === "settled" ? "Settled" : "Open"}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {customBet.options.map((option) => {
+                          const optionVotes = customBet.answers.filter(
+                            (row) => row.optionSelected.toLowerCase() === option.toLowerCase()
+                          ).length;
+                          const isSelected = selectedCustomOptionByBet[customBet.id] === option;
+                          const pct = totalVotes > 0 ? Math.round((optionVotes / totalVotes) * 100) : 0;
+
+                          return (
+                            <button
+                              key={`${customBet.id}-${option}`}
+                              type="button"
+                              className={`rounded-lg border p-3 text-left transition-colors ${
+                                isSelected
+                                  ? "border-primary bg-primary/10"
+                                  : "border-border/60 bg-background/40 hover:bg-muted/30"
+                              } ${customBet.status === "settled" ? "cursor-default" : "cursor-pointer"}`}
+                              onClick={() => {
+                                if (customBet.status === "settled") {
+                                  return;
+                                }
+                                setSelectedCustomOptionByBet((prev) => ({ ...prev, [customBet.id]: option }));
+                              }}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="font-medium text-foreground">{option}</p>
+                                <p className="text-xs text-muted-foreground">{optionVotes} picks</p>
+                              </div>
+                              <div className="mt-2 h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
+                                <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {customBet.status === "open" ? (
+                        <div className="space-y-3 rounded-lg border border-border/50 p-3 bg-muted/20">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <p className="text-sm text-muted-foreground">
+                              {myAnswer
+                                ? `Your current pick: ${myAnswer.optionSelected}`
+                                : "Pick an option and save your response."}
+                            </p>
+                            <Button
+                              size="sm"
+                              onClick={() => handleSubmitCustomAnswer(customBet)}
+                              disabled={Boolean(submittingCustomAnswerByBet[customBet.id])}
+                            >
+                              {submittingCustomAnswerByBet[customBet.id] ? "Saving..." : "Save Pick"}
+                            </Button>
+                          </div>
+
+                          {isOwner ? (
+                            <div className="space-y-2 rounded-md border border-border/50 bg-background/40 p-3">
+                              <p className="text-xs text-muted-foreground">Select the correct option to settle this bet.</p>
+                              <div className="flex flex-wrap gap-2">
+                                {customBet.options.map((option) => (
+                                  <Button
+                                    key={`solve-${customBet.id}-${option}`}
+                                    size="sm"
+                                    variant={
+                                      selectedSolveOptionByBet[customBet.id] === option ? "default" : "outline"
+                                    }
+                                    onClick={() =>
+                                      setSelectedSolveOptionByBet((prev) => ({ ...prev, [customBet.id]: option }))
+                                    }
+                                  >
+                                    {option}
+                                  </Button>
+                                ))}
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full sm:w-auto"
+                                onClick={() => handleSettleCustomBet(customBet)}
+                                disabled={Boolean(settlingCustomBetById[customBet.id])}
+                              >
+                                {settlingCustomBetById[customBet.id] ? "Settling..." : "Declare Solution"}
+                              </Button>
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <div className="space-y-3 rounded-lg border border-success/30 p-3 bg-success/5">
+                          <p className="text-sm text-foreground">
+                            Correct option: <span className="font-semibold">{customBet.correctOption || "N/A"}</span>
+                          </p>
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="border-border/50 hover:bg-transparent">
+                                <TableHead>Member</TableHead>
+                                <TableHead>Picked</TableHead>
+                                <TableHead className="text-right">Payout</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {customBet.answers
+                                .slice()
+                                .sort((a, b) => b.payout - a.payout)
+                                .map((answer) => (
+                                  <TableRow key={answer.id} className="border-border/30 hover:bg-muted/30">
+                                    <TableCell>{answer.userName}</TableCell>
+                                    <TableCell>{answer.optionSelected}</TableCell>
+                                    <TableCell
+                                      className={`text-right font-semibold ${
+                                        answer.payout > 0
+                                          ? "text-success"
+                                          : answer.payout < 0
+                                            ? "text-destructive"
+                                            : "text-muted-foreground"
+                                      }`}
+                                    >
+                                      {answer.payout}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="bet-history" className="space-y-4">
@@ -1157,6 +1457,59 @@ const GroupDetail = () => {
                 </Button>
                 <Button type="submit" disabled={creatingManual}>
                   {creatingManual ? "Adding..." : "Add Match"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={addCustomBetOpen} onOpenChange={setAddCustomBetOpen}>
+          <DialogContent className="glass-card border-border/50 sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add Custom Bet</DialogTitle>
+              <DialogDescription>
+                Create a question-based bet for this group. Only group owner can add and settle custom bets.
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleCreateCustomBet} className="space-y-3">
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Question</label>
+                <Input
+                  value={customQuestion}
+                  onChange={(event) => setCustomQuestion(event.target.value)}
+                  placeholder="Example: Who will score first in tonight's game?"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Options (one per line)</label>
+                <textarea
+                  value={customOptionsInput}
+                  onChange={(event) => setCustomOptionsInput(event.target.value)}
+                  className="w-full min-h-[110px] rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  placeholder={"Option 1\nOption 2\nOption 3"}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Bet Amount (coins)</label>
+                <Input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={customBetAmountInput}
+                  onChange={(event) => setCustomBetAmountInput(event.target.value)}
+                  placeholder="Enter amount"
+                />
+              </div>
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setAddCustomBetOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={creatingCustomBet}>
+                  {creatingCustomBet ? "Creating..." : "Create Custom Bet"}
                 </Button>
               </DialogFooter>
             </form>

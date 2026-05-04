@@ -1,15 +1,35 @@
 import { create } from "zustand";
-import type { Group, GroupSettlementSummary, LeaderboardEntry, PublicUserProfile } from "@/lib/types";
+import type {
+  CustomBet,
+  Group,
+  GroupSettlementSummary,
+  LeaderboardEntry,
+  PublicUserProfile,
+} from "@/lib/types";
 import { api } from "@/lib/api";
-import { mapGroup, mapLeaderboard, mapPublicUserProfile } from "@/lib/adapters";
+import { mapCustomBet, mapGroup, mapLeaderboard, mapPublicUserProfile } from "@/lib/adapters";
 import { useUserStore } from "@/store/userStore";
 
 interface GroupState {
   groups: Group[];
+  customBetsByGroup: Record<string, CustomBet[]>;
   loadGroups: () => Promise<void>;
   createGroup: (name: string, betPrice: number) => Promise<Group | null>;
   joinGroup: (inviteCode: string) => Promise<Group | null>;
   fetchGroupById: (groupId: string) => Promise<Group | null>;
+  loadCustomBets: (groupId: string) => Promise<CustomBet[]>;
+  createCustomBet: (
+    groupId: string,
+    question: string,
+    options: string[],
+    betAmount: number
+  ) => Promise<CustomBet | null>;
+  placeCustomBetAnswer: (
+    groupId: string,
+    customBetId: string,
+    optionSelected: string
+  ) => Promise<void>;
+  settleCustomBet: (groupId: string, customBetId: string, correctOption: string) => Promise<void>;
   getLeaderboard: (groupId: string) => Promise<LeaderboardEntry[]>;
   getSettlementSummary: (groupId: string) => Promise<GroupSettlementSummary>;
   syncGroupAndSettle: (groupId: string) => Promise<{
@@ -25,6 +45,7 @@ interface GroupState {
 
 export const useGroupStore = create<GroupState>((set, get) => ({
   groups: [],
+  customBetsByGroup: {},
   loadGroups: async () => {
     const userId = useUserStore.getState().user?.id;
     if (!userId) {
@@ -64,6 +85,56 @@ export const useGroupStore = create<GroupState>((set, get) => ({
       return { groups: [fetched, ...state.groups] };
     });
     return fetched;
+  },
+  loadCustomBets: async (groupId) => {
+    const response = await api.get(`/bets/custom/group/${groupId}`);
+    const rows = response.data?.data || [];
+    const mapped = rows.map(mapCustomBet);
+
+    set((state) => ({
+      customBetsByGroup: {
+        ...state.customBetsByGroup,
+        [groupId]: mapped,
+      },
+    }));
+
+    return mapped;
+  },
+  createCustomBet: async (groupId, question, options, betAmount) => {
+    const response = await api.post("/bets/custom", {
+      groupId,
+      question,
+      options,
+      betAmount,
+    });
+
+    const created = mapCustomBet(response.data?.data || {});
+    set((state) => {
+      const existing = state.customBetsByGroup[groupId] || [];
+      return {
+        customBetsByGroup: {
+          ...state.customBetsByGroup,
+          [groupId]: [created, ...existing],
+        },
+      };
+    });
+
+    return created;
+  },
+  placeCustomBetAnswer: async (groupId, customBetId, optionSelected) => {
+    await api.post("/bets/custom/place", {
+      groupId,
+      customBetId,
+      optionSelected,
+    });
+    await get().loadCustomBets(groupId);
+  },
+  settleCustomBet: async (groupId, customBetId, correctOption) => {
+    await api.patch(`/bets/custom/${customBetId}/solve`, {
+      groupId,
+      correctOption,
+    });
+    await get().loadCustomBets(groupId);
   },
   getLeaderboard: async (groupId) => {
     const response = await api.get(`/leaderboard/${groupId}`);
