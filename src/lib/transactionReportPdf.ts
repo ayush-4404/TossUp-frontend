@@ -1,4 +1,6 @@
 import type { GroupTransactionReport, ReportTransfer } from "@/lib/types";
+import { Capacitor } from "@capacitor/core";
+import { Directory, Filesystem } from "@capacitor/filesystem";
 
 type Color = [number, number, number];
 type FontName = "F1" | "F2";
@@ -187,6 +189,25 @@ const arrayBufferToBinaryString = (buffer: ArrayBuffer) => {
 };
 
 const blobToBinaryString = async (blob: Blob) => arrayBufferToBinaryString(await blob.arrayBuffer());
+
+const blobToBase64 = (blob: Blob) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result !== "string") {
+        reject(new Error("Failed to read PDF data"));
+        return;
+      }
+
+      const base64 = result.split(",")[1] || "";
+      resolve(base64);
+    };
+
+    reader.onerror = () => reject(new Error("Failed to read PDF data"));
+    reader.readAsDataURL(blob);
+  });
 
 const loadPdfBackgroundImage = async (): Promise<PdfImage | null> => {
   try {
@@ -711,14 +732,43 @@ const buildPdfBlob = async (report: GroupTransactionReport) => {
 
 export const downloadGroupTransactionReportPdf = async (report: GroupTransactionReport) => {
   const blob = await buildPdfBlob(report);
-  const url = URL.createObjectURL(blob);
   const member = report.generatedFor?.name ? `-${cleanText(report.generatedFor.name).toLowerCase()}` : "";
   const filenameBase = cleanText(report.group.name).toLowerCase().replace(/[^a-z0-9]+/g, "-") || "group";
   const memberBase = member.replace(/[^a-z0-9]+/g, "-");
-  const link = document.createElement("a");
+  const filename = `${filenameBase}${memberBase}-transaction-report.pdf`;
 
+  if (Capacitor.isNativePlatform()) {
+    const base64 = await blobToBase64(blob);
+
+    try {
+      await Filesystem.requestPermissions();
+    } catch {
+      // Ignore permission errors and rely on app-scoped storage fallback.
+    }
+
+    try {
+      await Filesystem.writeFile({
+        path: `Download/${filename}`,
+        data: base64,
+        directory: Directory.ExternalStorage,
+        recursive: true,
+      });
+      return;
+    } catch {
+      await Filesystem.writeFile({
+        path: filename,
+        data: base64,
+        directory: Directory.Documents,
+        recursive: true,
+      });
+      return;
+    }
+  }
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
   link.href = url;
-  link.download = `${filenameBase}${memberBase}-transaction-report.pdf`;
+  link.download = filename;
   document.body.appendChild(link);
   link.click();
   link.remove();
