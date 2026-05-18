@@ -3,6 +3,7 @@ import type {
   CustomBet,
   Group,
   GroupSettlementSummary,
+  GroupTransactionReport,
   LeaderboardEntry,
   PublicUserProfile,
 } from "@/lib/types";
@@ -30,8 +31,10 @@ interface GroupState {
     optionSelected: string
   ) => Promise<void>;
   settleCustomBet: (groupId: string, customBetId: string, correctOption: string) => Promise<void>;
+  deleteCustomBet: (groupId: string, customBetId: string) => Promise<void>;
   getLeaderboard: (groupId: string) => Promise<LeaderboardEntry[]>;
   getSettlementSummary: (groupId: string) => Promise<GroupSettlementSummary>;
+  getTransactionReport: (groupId: string) => Promise<GroupTransactionReport>;
   syncGroupAndSettle: (groupId: string) => Promise<{
     groupId: string;
     syncedUpcomingMatches: number;
@@ -39,9 +42,44 @@ interface GroupState {
     refreshedResultMatches: number;
     settledGroupSummaries: number;
   }>;
+  backfillMatchWinners: (groupId: string) => Promise<{
+    checked: number;
+    updated: number;
+    skipped: number;
+  }>;
   getPublicUserProfile: (userId: string) => Promise<PublicUserProfile>;
   getGroup: (id: string) => Group | undefined;
 }
+
+const asRecord = (value: unknown): Record<string, unknown> =>
+  value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+
+const mapSettlementMemberRow = (value: unknown) => {
+  const row = asRecord(value);
+  const direction = row.direction === "pay" || row.direction === "receive" ? row.direction : "settled";
+
+  return {
+    userId: String(row.userId || ""),
+    name: String(row.name || ""),
+    email: String(row.email || ""),
+    incoming: Number(row.incoming || 0),
+    outgoing: Number(row.outgoing || 0),
+    net: Number(row.net || 0),
+    direction,
+  };
+};
+
+const mapPaymentInstructionRow = (value: unknown) => {
+  const row = asRecord(value);
+
+  return {
+    fromUserId: String(row.fromUserId || ""),
+    fromUserName: String(row.fromUserName || ""),
+    toUserId: String(row.toUserId || ""),
+    toUserName: String(row.toUserName || ""),
+    amount: Number(row.amount || 0),
+  };
+};
 
 export const useGroupStore = create<GroupState>((set, get) => ({
   groups: [],
@@ -136,6 +174,20 @@ export const useGroupStore = create<GroupState>((set, get) => ({
     });
     await get().loadCustomBets(groupId);
   },
+  deleteCustomBet: async (groupId, customBetId) => {
+    await api.delete(`/bets/custom/${customBetId}`, {
+      data: { groupId },
+    });
+    set((state) => {
+      const existing = state.customBetsByGroup[groupId] || [];
+      return {
+        customBetsByGroup: {
+          ...state.customBetsByGroup,
+          [groupId]: existing.filter((bet) => bet.id !== customBetId),
+        },
+      };
+    });
+  },
   getLeaderboard: async (groupId) => {
     const response = await api.get(`/leaderboard/${groupId}`);
     return mapLeaderboard(response.data?.data?.leaderboard || []);
@@ -154,26 +206,32 @@ export const useGroupStore = create<GroupState>((set, get) => ({
         membersWithBalance: Number(payload?.totals?.membersWithBalance || 0),
       },
       memberSummaries: Array.isArray(payload.memberSummaries)
-        ? payload.memberSummaries.map((row: any) => ({
-            userId: row.userId,
-            name: row.name,
-            email: row.email,
-            incoming: Number(row.incoming || 0),
-            outgoing: Number(row.outgoing || 0),
-            net: Number(row.net || 0),
-            direction: row.direction,
-          }))
+        ? payload.memberSummaries.map(mapSettlementMemberRow)
         : [],
       paymentInstructions: Array.isArray(payload.paymentInstructions)
-        ? payload.paymentInstructions.map((row: any) => ({
-            fromUserId: row.fromUserId,
-            fromUserName: row.fromUserName,
-            toUserId: row.toUserId,
-            toUserName: row.toUserName,
-            amount: Number(row.amount || 0),
-          }))
+        ? payload.paymentInstructions.map(mapPaymentInstructionRow)
         : [],
+      customBetSummary: payload.customBetSummary
+        ? {
+            totals: {
+              totalIncoming: Number(payload.customBetSummary?.totals?.totalIncoming || 0),
+              totalOutgoing: Number(payload.customBetSummary?.totals?.totalOutgoing || 0),
+              transferCount: Number(payload.customBetSummary?.totals?.transferCount || 0),
+              membersWithBalance: Number(payload.customBetSummary?.totals?.membersWithBalance || 0),
+            },
+            memberSummaries: Array.isArray(payload.customBetSummary?.memberSummaries)
+              ? payload.customBetSummary.memberSummaries.map(mapSettlementMemberRow)
+              : [],
+            paymentInstructions: Array.isArray(payload.customBetSummary?.paymentInstructions)
+              ? payload.customBetSummary.paymentInstructions.map(mapPaymentInstructionRow)
+              : [],
+          }
+        : undefined,
     };
+  },
+  getTransactionReport: async (groupId) => {
+    const response = await api.get(`/groups/${groupId}/transaction-report`);
+    return response.data?.data || {};
   },
   syncGroupAndSettle: async (groupId) => {
     const response = await api.post(`/groups/${groupId}/sync-settlement`);
@@ -185,6 +243,16 @@ export const useGroupStore = create<GroupState>((set, get) => ({
       refreshedResultCandidates: Number(payload.refreshedResultCandidates || 0),
       refreshedResultMatches: Number(payload.refreshedResultMatches || 0),
       settledGroupSummaries: Number(payload.settledGroupSummaries || 0),
+    };
+  },
+  backfillMatchWinners: async (groupId) => {
+    const response = await api.post(`/groups/${groupId}/backfill-winners`);
+    const payload = response.data?.data || {};
+
+    return {
+      checked: Number(payload.checked || 0),
+      updated: Number(payload.updated || 0),
+      skipped: Number(payload.skipped || 0),
     };
   },
   getPublicUserProfile: async (userId) => {

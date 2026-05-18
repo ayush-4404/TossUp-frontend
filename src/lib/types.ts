@@ -46,6 +46,13 @@ export interface Match {
   manualBetAmount?: number | null;
 }
 
+export interface MatchResultRefreshSummary {
+  syncedMatchCount: number;
+  refreshedMatchCount: number;
+  completedMatchCount: number;
+  settlementCount: number;
+}
+
 export interface Group {
   id: string;
   name: string;
@@ -192,6 +199,17 @@ export interface GroupPaymentInstruction {
   amount: number;
 }
 
+export interface GroupSettlementBreakdown {
+  totals: {
+    totalIncoming: number;
+    totalOutgoing: number;
+    transferCount: number;
+    membersWithBalance: number;
+  };
+  memberSummaries: GroupSettlementMember[];
+  paymentInstructions: GroupPaymentInstruction[];
+}
+
 export interface GroupSettlementSummary {
   groupId: string;
   groupName: string;
@@ -203,4 +221,91 @@ export interface GroupSettlementSummary {
   };
   memberSummaries: GroupSettlementMember[];
   paymentInstructions: GroupPaymentInstruction[];
+  customBetSummary?: GroupSettlementBreakdown;
+}
+
+export interface ReportUser {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export interface ReportTransfer {
+  id: string;
+  fromUser: ReportUser;
+  toUser: ReportUser;
+  amount: number;
+  createdAt?: string | null;
+}
+
+export interface GroupTransactionReport {
+  generatedAt: string;
+  group: {
+    id: string;
+    name: string;
+    inviteCode: string;
+    betPrice: number;
+    owner: ReportUser;
+    members: ReportUser[];
+  };
+  generatedFor?: ReportUser;
+  summary: {
+    matchCount: number;
+    customBetCount: number;
+    matchTransferCount: number;
+    customBetTransferCount: number;
+    totalCoinsMoved: number;
+  };
+  matchSections: Array<{
+    match: {
+      id: string;
+      teamA: string;
+      teamB: string;
+      startTime?: string | null;
+      status: "upcoming" | "live" | "completed";
+      winner?: string | null;
+      isManual: boolean;
+    };
+    bets: Array<{
+      id: string;
+      user: ReportUser;
+      teamSelected: string;
+      amount: number;
+      settled: boolean;
+      createdAt?: string | null;
+    }>;
+    transfers: ReportTransfer[];
+    totals: {
+      betCount: number;
+      transferCount: number;
+      coinsMoved: number;
+    };
+  }>;
+  customBetSections: Array<{
+    id: string;
+    question: string;
+    options: string[];
+    betAmount: number;
+    status: "open" | "settled";
+    correctOption?: string | null;
+    createdBy: ReportUser;
+    createdAt?: string | null;
+    settledAt?: string | null;
+    answers: Array<{
+      id: string;
+      user: ReportUser;
+      optionSelected: string;
+      amount: number;
+      settled: boolean;
+      isWinner: boolean | null;
+      payout: number;
+      createdAt?: string | null;
+    }>;
+    transfers: ReportTransfer[];
+    totals: {
+      answerCount: number;
+      transferCount: number;
+      coinsMoved: number;
+    };
+  }>;
 }

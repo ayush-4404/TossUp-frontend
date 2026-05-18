@@ -24,9 +24,10 @@ const MatchCard = ({
   isViewGroupBetsActive = false,
 }: MatchCardProps) => {
   const navigate = useNavigate();
+  const canPlaceBet = match.status === "upcoming";
 
   const handleBet = () => {
-    if (actionMode !== "bet") {
+    if (actionMode !== "bet" || !canPlaceBet) {
       return;
     }
 
@@ -72,8 +73,9 @@ const MatchCard = ({
               onClick={handleBet}
               className="w-full gradient-primary text-primary-foreground font-display font-bold tracking-wide hover:opacity-90 transition-opacity"
               size="sm"
+              disabled={!canPlaceBet}
             >
-              Place Bet
+              {canPlaceBet ? "Place Bet" : "Betting Locked"}
             </Button>
             {onViewGroupBets ? (
               <Button

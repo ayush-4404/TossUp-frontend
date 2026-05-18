@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Copy, IndianRupee, Users, PlusCircle, Flag, CheckCircle2, CircleDot } from "lucide-react";
+import { Copy, IndianRupee, Users, PlusCircle, Flag, CheckCircle2, CircleDot, RefreshCw, FileDown, Trash2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { useGroupStore } from "@/store/groupStore";
 import { useMatchStore } from "@/store/matchStore";
 import { useUserStore } from "@/store/userStore";
 import { toast } from "@/hooks/use-toast";
+import { downloadGroupTransactionReportPdf } from "@/lib/transactionReportPdf";
 import type {
   BetHistoryEntry,
   CoinTransfer,
@@ -42,9 +43,12 @@ const GroupDetail = () => {
     createCustomBet,
     placeCustomBetAnswer,
     settleCustomBet,
+    deleteCustomBet,
     getLeaderboard,
     getSettlementSummary,
+    getTransactionReport,
     getPublicUserProfile,
+    backfillMatchWinners,
   } = useGroupStore();
   const {
     matches,
@@ -53,6 +57,7 @@ const GroupDetail = () => {
     createManualMatch,
     updateManualMatchBetAmount,
     declareManualMatchResult,
+    refreshLiveMatchResults,
     loadGroupBets,
     loadGroupMatchBets,
     loadGroupMatchTransfers,
@@ -66,10 +71,14 @@ const GroupDetail = () => {
   const [addCustomBetOpen, setAddCustomBetOpen] = useState(false);
   const [declaringResult, setDeclaringResult] = useState(false);
   const [creatingManual, setCreatingManual] = useState(false);
+  const [refreshingLiveResults, setRefreshingLiveResults] = useState(false);
+  const [backfillingWinners, setBackfillingWinners] = useState(false);
+  const [downloadingReport, setDownloadingReport] = useState(false);
   const [creatingCustomBet, setCreatingCustomBet] = useState(false);
   const [updatingManualBetAmount, setUpdatingManualBetAmount] = useState(false);
   const [submittingCustomAnswerByBet, setSubmittingCustomAnswerByBet] = useState<Record<string, boolean>>({});
   const [settlingCustomBetById, setSettlingCustomBetById] = useState<Record<string, boolean>>({});
+  const [deletingCustomBetById, setDeletingCustomBetById] = useState<Record<string, boolean>>({});
   const [manualTeamA, setManualTeamA] = useState("");
   const [manualTeamB, setManualTeamB] = useState("");
   const [manualStartTime, setManualStartTime] = useState("");
@@ -88,15 +97,19 @@ const GroupDetail = () => {
   const [selectionClearedByUser, setSelectionClearedByUser] = useState(false);
   const [isResolvingGroup, setIsResolvingGroup] = useState(true);
   const [groupMissing, setGroupMissing] = useState(false);
+  const hasCompletedMatch = useMemo(
+    () => matches.some((match) => match.status === "completed"),
+    [matches]
+  );
 
   useEffect(() => {
     if (groups.length === 0) {
       loadGroups().catch(() => undefined);
     }
-    if (matches.length === 0 || !matches.some((match) => match.status === "completed")) {
+    if (matches.length === 0 || !hasCompletedMatch) {
       loadMatches({ includeCompleted: true }).catch(() => undefined);
     }
-  }, [groups.length, matches.length, loadGroups, loadMatches]);
+  }, [groups.length, matches.length, hasCompletedMatch, loadGroups, loadMatches]);
 
   useEffect(() => {
     let active = true;
@@ -209,7 +222,7 @@ const GroupDetail = () => {
   );
 
   const groupMatches = useMemo(
-    () => allGroupMatches.filter((m) => m.status === "upcoming"),
+    () => allGroupMatches.filter((m) => m.status === "upcoming" || m.status === "live"),
     [allGroupMatches]
   );
 
@@ -305,6 +318,30 @@ const GroupDetail = () => {
   const copyCode = () => {
     navigator.clipboard.writeText(group.inviteCode);
     toast({ title: "Copied!" });
+  };
+
+  const handleDownloadTransactionReport = async () => {
+    if (!id) {
+      return;
+    }
+
+    setDownloadingReport(true);
+    try {
+      const report = await getTransactionReport(id);
+      await downloadGroupTransactionReportPdf(report);
+      toast({
+        title: "Report downloaded",
+        description: "The PDF includes match-wise transactions and custom bets.",
+      });
+    } catch {
+      toast({
+        title: "Download failed",
+        description: "Could not prepare the transaction report.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloadingReport(false);
+    }
   };
 
   const openMemberProfile = async (memberUserId: string) => {
@@ -429,6 +466,94 @@ const GroupDetail = () => {
     }
   };
 
+  const handleRefreshLiveResults = async () => {
+    if (!id) {
+      return;
+    }
+
+    setRefreshingLiveResults(true);
+    try {
+      const summary = await refreshLiveMatchResults(id);
+      await loadMatches({ includeCompleted: true });
+      await loadGroupBets(id);
+
+      if (selectedMatchId) {
+        try {
+          const rows = await loadGroupMatchTransfers(id, selectedMatchId);
+          setTransfersByMatch((prev) => ({ ...prev, [selectedMatchId]: rows }));
+        } catch {
+          setTransfersByMatch((prev) => ({ ...prev, [selectedMatchId]: [] }));
+        }
+
+        try {
+          const rows = await loadGroupMatchBetHistory(id, selectedMatchId);
+          setBetHistoryByMatch((prev) => ({ ...prev, [selectedMatchId]: rows }));
+        } catch {
+          setBetHistoryByMatch((prev) => ({ ...prev, [selectedMatchId]: [] }));
+        }
+      }
+
+      try {
+        const rows = await getLeaderboard(id);
+        setLeaderboard(rows);
+      } catch {
+        setLeaderboard([]);
+      }
+
+      try {
+        const nextSummary = await getSettlementSummary(id);
+        setSettlementSummary(nextSummary);
+      } catch {
+        setSettlementSummary(null);
+      }
+
+      toast({
+        title: "Results refreshed",
+        description: `${summary?.refreshedMatchCount ?? 0} matches checked, ${summary?.settlementCount ?? 0} settlements updated.`,
+      });
+    } catch {
+      toast({
+        title: "Refresh failed",
+        description: "Could not refresh live match results right now.",
+        variant: "destructive",
+      });
+    } finally {
+      setRefreshingLiveResults(false);
+    }
+  };
+
+  const handleBackfillWinners = async () => {
+    if (!id) {
+      return;
+    }
+
+    setBackfillingWinners(true);
+    try {
+      const result = await backfillMatchWinners(id);
+      await loadMatches({ includeCompleted: true });
+      try {
+        const nextSummary = await getSettlementSummary(id);
+        setSettlementSummary(nextSummary);
+      } catch {
+        setSettlementSummary(null);
+      }
+
+      toast({
+        title: "Backfill complete",
+        description: `Checked ${result.checked} matches, updated ${result.updated}, skipped ${result.skipped}.`,
+      });
+    } catch {
+      toast({
+        title: "Backfill failed",
+        description: "Could not backfill match winners.",
+        variant: "destructive",
+      });
+    } finally {
+      setBackfillingWinners(false);
+    }
+  };
+
+
   const handleCreateCustomBet = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!id) {
@@ -518,6 +643,27 @@ const GroupDetail = () => {
       toast({ title: "Failed", description: "Could not settle custom bet.", variant: "destructive" });
     } finally {
       setSettlingCustomBetById((prev) => ({ ...prev, [customBet.id]: false }));
+    }
+  };
+
+  const handleDeleteCustomBet = async (customBet: CustomBet) => {
+    if (!id) {
+      return;
+    }
+
+    const confirmed = window.confirm("Delete this custom bet? This cannot be undone.");
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingCustomBetById((prev) => ({ ...prev, [customBet.id]: true }));
+    try {
+      await deleteCustomBet(id, customBet.id);
+      toast({ title: "Custom bet deleted", description: "The custom bet has been removed." });
+    } catch {
+      toast({ title: "Failed", description: "Could not delete custom bet.", variant: "destructive" });
+    } finally {
+      setDeletingCustomBetById((prev) => ({ ...prev, [customBet.id]: false }));
     }
   };
 
@@ -653,6 +799,31 @@ const GroupDetail = () => {
     );
   }, [settlementSummary, user]);
 
+  const myCustomBetSettlement = useMemo(() => {
+    if (!user || !settlementSummary?.customBetSummary) {
+      return null;
+    }
+
+    return (
+      settlementSummary.customBetSummary.memberSummaries.find(
+        (member) => member.userId === user.id
+      ) || null
+    );
+  }, [settlementSummary, user]);
+
+  const combinedPaymentInstructions = useMemo(() => {
+    const standard = (settlementSummary?.paymentInstructions || []).map((row) => ({
+      ...row,
+      source: "Matches",
+    }));
+    const custom = (settlementSummary?.customBetSummary?.paymentInstructions || []).map((row) => ({
+      ...row,
+      source: "Custom Bets",
+    }));
+
+    return [...standard, ...custom];
+  }, [settlementSummary]);
+
   if (isResolvingGroup) {
     return (
       <div className="min-h-screen bg-background">
@@ -685,10 +856,21 @@ const GroupDetail = () => {
                 <span className="flex items-center gap-1"><Users className="h-4 w-4 text-accent" />{group.members.length} members</span>
               </div>
             </div>
-            <Button onClick={copyCode} variant="outline" className="border-border/50 gap-2 w-full sm:w-auto">
-              <span className="font-mono text-sm">{group.inviteCode}</span>
-              <Copy className="h-4 w-4" />
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <Button
+                onClick={handleDownloadTransactionReport}
+                disabled={downloadingReport}
+                variant="outline"
+                className="border-border/50 gap-2 w-full sm:w-auto"
+              >
+                <FileDown className="h-4 w-4" />
+                {downloadingReport ? "Preparing..." : "Download PDF"}
+              </Button>
+              <Button onClick={copyCode} variant="outline" className="border-border/50 gap-2 w-full sm:w-auto">
+                <span className="font-mono text-sm">{group.inviteCode}</span>
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </motion.div>
 
@@ -707,7 +889,25 @@ const GroupDetail = () => {
 
           <TabsContent value="matches" className="space-y-4">
             {isOwner ? (
-              <div className="flex justify-stretch sm:justify-end">
+              <div className="flex flex-col sm:flex-row justify-stretch sm:justify-end gap-2">
+                <Button
+                  onClick={handleRefreshLiveResults}
+                  disabled={refreshingLiveResults}
+                  variant="outline"
+                  className="gap-2 w-full sm:w-auto"
+                >
+                  <RefreshCw className={`h-4 w-4 ${refreshingLiveResults ? "animate-spin" : ""}`} />
+                  {refreshingLiveResults ? "Refreshing..." : "Refresh Live Results"}
+                </Button>
+                <Button
+                  onClick={handleBackfillWinners}
+                  disabled={backfillingWinners}
+                  variant="outline"
+                  className="gap-2 w-full sm:w-auto"
+                >
+                  <Flag className="h-4 w-4" />
+                  {backfillingWinners ? "Backfilling..." : "Backfill Winners"}
+                </Button>
                 <Button onClick={() => setAddManualOpen(true)} className="gap-2 w-full sm:w-auto">
                   <PlusCircle className="h-4 w-4" />
                   Add Manual Match
@@ -941,20 +1141,34 @@ const GroupDetail = () => {
                             Stake: {customBet.betAmount} coins · Created by {customBet.createdByName}
                           </p>
                         </div>
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold border ${
-                            customBet.status === "settled"
-                              ? "border-success/40 text-success bg-success/10"
-                              : "border-border/60 text-foreground bg-background/50"
-                          }`}
-                        >
-                          {customBet.status === "settled" ? (
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                          ) : (
-                            <CircleDot className="h-3.5 w-3.5" />
-                          )}
-                          {customBet.status === "settled" ? "Settled" : "Open"}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold border ${
+                              customBet.status === "settled"
+                                ? "border-success/40 text-success bg-success/10"
+                                : "border-border/60 text-foreground bg-background/50"
+                            }`}
+                          >
+                            {customBet.status === "settled" ? (
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                            ) : (
+                              <CircleDot className="h-3.5 w-3.5" />
+                            )}
+                            {customBet.status === "settled" ? "Settled" : "Open"}
+                          </span>
+                          {isOwner && customBet.status === "open" ? (
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="gap-1.5"
+                              onClick={() => handleDeleteCustomBet(customBet)}
+                              disabled={Boolean(deletingCustomBetById[customBet.id])}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              {deletingCustomBetById[customBet.id] ? "Deleting..." : "Delete"}
+                            </Button>
+                          ) : null}
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1387,10 +1601,10 @@ const GroupDetail = () => {
             <div className="glass-card rounded-xl overflow-hidden">
               <div className="p-4 border-b border-border/50">
                 <h4 className="font-display font-bold text-base text-foreground">Who Pays Whom</h4>
-                <p className="text-xs text-muted-foreground mt-1">Minimal payment instructions based on net balances.</p>
+                <p className="text-xs text-muted-foreground mt-1">Minimal payment instructions based on match and custom bet balances.</p>
               </div>
 
-              {(settlementSummary?.paymentInstructions || []).length === 0 ? (
+              {combinedPaymentInstructions.length === 0 ? (
                 <p className="text-sm text-muted-foreground p-4">All members are settled. No payments pending.</p>
               ) : (
                 <Table>
@@ -1398,20 +1612,148 @@ const GroupDetail = () => {
                     <TableRow className="border-border/50 hover:bg-transparent">
                       <TableHead>Payer</TableHead>
                       <TableHead>Receiver</TableHead>
+                      <TableHead>Source</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(settlementSummary?.paymentInstructions || []).map((row, index) => (
-                      <TableRow key={`${row.fromUserId}-${row.toUserId}-${index}`} className="border-border/30 hover:bg-muted/30">
+                    {combinedPaymentInstructions.map((row, index) => (
+                      <TableRow
+                        key={`${row.fromUserId}-${row.toUserId}-${row.source}-${index}`}
+                        className="border-border/30 hover:bg-muted/30"
+                      >
                         <TableCell>{row.fromUserName}</TableCell>
                         <TableCell>{row.toUserName}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{row.source}</TableCell>
                         <TableCell className="text-right font-semibold">{row.amount}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               )}
+            </div>
+
+            <div className="glass-card rounded-xl overflow-hidden">
+              <div className="p-4 border-b border-border/50">
+                <h4 className="font-display font-bold text-base text-foreground">Custom Bet Settlement</h4>
+                <p className="text-xs text-muted-foreground mt-1">Summary of custom bet transfers only.</p>
+              </div>
+
+              <div className="p-4 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="rounded-lg border border-border/50 p-3 bg-muted/20">
+                    <p className="text-xs text-muted-foreground">Your Incoming</p>
+                    <p className="text-xl font-bold text-success">
+                      {myCustomBetSettlement?.incoming ?? 0}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-border/50 p-3 bg-muted/20">
+                    <p className="text-xs text-muted-foreground">Your Outgoing</p>
+                    <p className="text-xl font-bold text-destructive">
+                      {myCustomBetSettlement?.outgoing ?? 0}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-border/50 p-3 bg-muted/20">
+                    <p className="text-xs text-muted-foreground">Your Net</p>
+                    <p
+                      className={`text-xl font-bold ${
+                        (myCustomBetSettlement?.net ?? 0) > 0
+                          ? "text-success"
+                          : (myCustomBetSettlement?.net ?? 0) < 0
+                            ? "text-destructive"
+                            : "text-foreground"
+                      }`}
+                    >
+                      {myCustomBetSettlement?.net ?? 0}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="rounded-lg border border-border/50 p-3 bg-muted/20">
+                    <p className="text-xs text-muted-foreground">Transfer Rows</p>
+                    <p className="text-xl font-bold text-foreground">
+                      {settlementSummary?.customBetSummary?.totals.transferCount ?? 0}
+                    </p>
+                  </div>
+                </div>
+
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border/50 hover:bg-transparent">
+                      <TableHead>Member</TableHead>
+                      <TableHead className="text-right">Incoming</TableHead>
+                      <TableHead className="text-right">Outgoing</TableHead>
+                      <TableHead className="text-right">Net</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(settlementSummary?.customBetSummary?.memberSummaries || []).map((member) => (
+                      <TableRow key={member.userId} className="border-border/30 hover:bg-muted/30">
+                        <TableCell>{member.name}</TableCell>
+                        <TableCell className="text-right text-success">{member.incoming}</TableCell>
+                        <TableCell className="text-right text-destructive">{member.outgoing}</TableCell>
+                        <TableCell
+                          className={`text-right font-semibold ${
+                            member.net > 0
+                              ? "text-success"
+                              : member.net < 0
+                                ? "text-destructive"
+                                : "text-muted-foreground"
+                          }`}
+                        >
+                          {member.net}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+
+                {(settlementSummary?.customBetSummary?.memberSummaries || []).length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No custom bet settlement data yet for this group.
+                  </p>
+                ) : null}
+
+                <div className="pt-2 border-t border-border/50">
+                  <h5 className="font-display font-bold text-sm text-foreground">Who Pays Whom</h5>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Minimal payment instructions based on custom bet balances.
+                  </p>
+
+                  {(settlementSummary?.customBetSummary?.paymentInstructions || []).length === 0 ? (
+                    <p className="text-sm text-muted-foreground mt-3">
+                      All members are settled for custom bets. No payments pending.
+                    </p>
+                  ) : (
+                    <Table className="mt-3">
+                      <TableHeader>
+                        <TableRow className="border-border/50 hover:bg-transparent">
+                          <TableHead>Payer</TableHead>
+                          <TableHead>Receiver</TableHead>
+                          <TableHead className="text-right">Amount</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(settlementSummary?.customBetSummary?.paymentInstructions || []).map(
+                          (row, index) => (
+                            <TableRow
+                              key={`${row.fromUserId}-${row.toUserId}-${index}`}
+                              className="border-border/30 hover:bg-muted/30"
+                            >
+                              <TableCell>{row.fromUserName}</TableCell>
+                              <TableCell>{row.toUserName}</TableCell>
+                              <TableCell className="text-right font-semibold">
+                                {row.amount}
+                              </TableCell>
+                            </TableRow>
+                          )
+                        )}
+                      </TableBody>
+                    </Table>
+                  )}
+                </div>
+              </div>
             </div>
           </TabsContent>
         </Tabs>

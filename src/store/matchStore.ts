@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Match, Bet, CoinTransfer, BetHistoryEntry } from "@/lib/types";
+import type { Match, Bet, CoinTransfer, BetHistoryEntry, MatchResultRefreshSummary } from "@/lib/types";
 import { api } from "@/lib/api";
 import { mapBet, mapBetHistoryEntry, mapCoinTransfer, mapMatch } from "@/lib/adapters";
 import { useUserStore } from "@/store/userStore";
@@ -13,6 +13,7 @@ interface MatchState {
   createManualMatch: (groupId: string, teamA: string, teamB: string, startTime: string) => Promise<Match | null>;
   updateManualMatchBetAmount: (groupId: string, matchId: string, betAmount: number) => Promise<Match | null>;
   declareManualMatchResult: (groupId: string, matchId: string, winner: string) => Promise<Match | null>;
+  refreshLiveMatchResults: (groupId: string) => Promise<MatchResultRefreshSummary>;
   loadGroupBets: (groupId: string) => Promise<void>;
   loadGroupMatchBets: (groupId: string, matchId: string) => Promise<Bet[]>;
   loadGroupMatchTransfers: (groupId: string, matchId: string) => Promise<CoinTransfer[]>;
@@ -83,6 +84,10 @@ export const useMatchStore = create<MatchState>((set, get) => ({
       matches: state.matches.map((match) => (match.id === updated.id ? updated : match)),
     }));
     return updated;
+  },
+  refreshLiveMatchResults: async (groupId) => {
+    const response = await api.post("/matches/refresh-live-results", { groupId });
+    return response.data?.data;
   },
   loadGroupBets: async (groupId) => {
     const response = await api.get(`/bets/group/${groupId}`);
