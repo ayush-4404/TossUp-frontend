@@ -19,6 +19,11 @@ type NetRow = {
 
 type TableTone = "neutral" | "success" | "danger" | "warning";
 type TableRow = string[] | { cells: string[]; tone?: TableTone };
+type PdfImage = {
+  binary: string;
+  width: number;
+  height: number;
+};
 
 const PAGE_WIDTH = 595;
 const PAGE_HEIGHT = 842;
@@ -28,8 +33,7 @@ const TOP = 38;
 const BOTTOM = 42;
 const CONTENT_WIDTH = PAGE_WIDTH - LEFT - RIGHT;
 const BACKGROUND_IMAGE_URL = "/background.jpg";
-const BACKGROUND_IMAGE_WIDTH = 4032;
-const BACKGROUND_IMAGE_HEIGHT = 2979;
+const BACKGROUND_IMAGE_MAX_WIDTH = 1200;
 
 const COLORS = {
   ink: [30, 41, 59] as Color,
@@ -182,19 +186,49 @@ const arrayBufferToBinaryString = (buffer: ArrayBuffer) => {
   return binary;
 };
 
-const loadPdfBackgroundImage = async () => {
-  try {
-    const response = await fetch(BACKGROUND_IMAGE_URL);
-    if (!response.ok) return null;
+const blobToBinaryString = async (blob: Blob) => arrayBufferToBinaryString(await blob.arrayBuffer());
 
-    return arrayBufferToBinaryString(await response.arrayBuffer());
+const loadPdfBackgroundImage = async (): Promise<PdfImage | null> => {
+  try {
+    const image = new Image();
+    image.decoding = "async";
+    image.src = BACKGROUND_IMAGE_URL;
+
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error("Could not load PDF background image"));
+    });
+
+    const scale = Math.min(1, BACKGROUND_IMAGE_MAX_WIDTH / image.naturalWidth);
+    const width = Math.max(1, Math.round(image.naturalWidth * scale));
+    const height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext("2d");
+    if (!context) return null;
+
+    context.drawImage(image, 0, 0, width, height);
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, "image/jpeg", 0.72);
+    });
+
+    if (!blob) return null;
+
+    return {
+      binary: await blobToBinaryString(blob),
+      width,
+      height,
+    };
   } catch {
     return null;
   }
 };
 
-const getBackgroundDrawCommand = () => {
-  const imageRatio = BACKGROUND_IMAGE_WIDTH / BACKGROUND_IMAGE_HEIGHT;
+const getBackgroundDrawCommand = (image: PdfImage) => {
+  const imageRatio = image.width / image.height;
   const pageRatio = PAGE_WIDTH / PAGE_HEIGHT;
   const height = imageRatio > pageRatio ? PAGE_HEIGHT : PAGE_WIDTH / imageRatio;
   const width = imageRatio > pageRatio ? PAGE_HEIGHT * imageRatio : PAGE_WIDTH;
@@ -632,7 +666,7 @@ const buildPdfBlob = async (report: GroupTransactionReport) => {
   const boldFontId = addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>");
   const backgroundImageId = backgroundImage
     ? addObject(
-        `<< /Type /XObject /Subtype /Image /Width ${BACKGROUND_IMAGE_WIDTH} /Height ${BACKGROUND_IMAGE_HEIGHT} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${backgroundImage.length} >>\nstream\n${backgroundImage}\nendstream`
+        `<< /Type /XObject /Subtype /Image /Width ${backgroundImage.width} /Height ${backgroundImage.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${backgroundImage.binary.length} >>\nstream\n${backgroundImage.binary}\nendstream`
       )
     : null;
   const backgroundOpacityId = backgroundImage
@@ -641,7 +675,7 @@ const buildPdfBlob = async (report: GroupTransactionReport) => {
   const pageIds: number[] = [];
 
   pages.forEach((pageContent) => {
-    const fullPageContent = backgroundImage ? `${getBackgroundDrawCommand()}${pageContent}` : pageContent;
+    const fullPageContent = backgroundImage ? `${getBackgroundDrawCommand(backgroundImage)}${pageContent}` : pageContent;
     const xObjectResources = backgroundImageId ? `/XObject << /BG ${backgroundImageId} 0 R >>` : "";
     const graphicStateResources = backgroundOpacityId ? `/ExtGState << /GSBG ${backgroundOpacityId} 0 R >>` : "";
     const contentId = addObject(`<< /Length ${fullPageContent.length} >>\nstream\n${fullPageContent}endstream`);

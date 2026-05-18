@@ -361,6 +361,13 @@
     min-height: 100vh;
     padding-top: var(--safe-area-top);
     padding-bottom: var(--safe-area-bottom);
+    overflow-x: hidden;
+  }
+
+  html,
+  #root {
+    min-height: 100%;
+    overflow-x: hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
